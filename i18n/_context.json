@@ -1,0 +1,1132 @@
+{
+ "appTitle": {
+  "group": "1 Header & tabs",
+  "kind": "tab",
+  "where": "App name (ಜಲಗಾರ / Jalagara) at the top of every screen"
+ },
+ "appSub": {
+  "group": "1 Header & tabs",
+  "kind": "chip",
+  "where": "Small line under the app name when no village title is set"
+ },
+ "journal": {
+  "group": "1 Header & tabs",
+  "kind": "tab",
+  "where": "Bottom tab: list of days"
+ },
+ "add": {
+  "group": "1 Header & tabs",
+  "kind": "tab",
+  "where": "Bottom tab: the + button to record a new day"
+ },
+ "stats": {
+  "group": "1 Header & tabs",
+  "kind": "tab",
+  "where": "Bottom tab: numbers and charts"
+ },
+ "settings": {
+  "group": "1 Header & tabs",
+  "kind": "tab",
+  "where": "Bottom tab: settings"
+ },
+ "item.plastic_bottle": {
+  "group": "10 Trash categories",
+  "kind": "label",
+  "where": "Starting name of a trash category (counter label, charts, Sheet column)"
+ },
+ "item.glass_bottle": {
+  "group": "10 Trash categories",
+  "kind": "label",
+  "where": "Starting name of a trash category (counter label, charts, Sheet column)"
+ },
+ "item.broken_glass": {
+  "group": "10 Trash categories",
+  "kind": "label",
+  "where": "Starting name of a trash category (counter label, charts, Sheet column)"
+ },
+ "item.beer_can": {
+  "group": "10 Trash categories",
+  "kind": "label",
+  "where": "Starting name of a trash category (counter label, charts, Sheet column)"
+ },
+ "item.footwear": {
+  "group": "10 Trash categories",
+  "kind": "label",
+  "where": "Starting name of a trash category (counter label, charts, Sheet column)"
+ },
+ "item.syringe": {
+  "group": "10 Trash categories",
+  "kind": "label",
+  "where": "Starting name of a trash category (counter label, charts, Sheet column)"
+ },
+ "video": {
+  "group": "2 Sync indicator & banners",
+  "kind": "chip",
+  "where": "Indicator while a video uploads: '⬆ Video 45%'"
+ },
+ "waitWifi": {
+  "group": "2 Sync indicator & banners",
+  "kind": "chip",
+  "where": "Reason a video is waiting (Wi-Fi only setting)"
+ },
+ "syncOk": {
+  "group": "2 Sync indicator & banners",
+  "kind": "chip",
+  "where": "Indicator at the top when everything is uploaded"
+ },
+ "syncPending": {
+  "group": "2 Sync indicator & banners",
+  "kind": "chip",
+  "where": "Indicator: '3 pending' — follows a number"
+ },
+ "syncing": {
+  "group": "2 Sync indicator & banners",
+  "kind": "chip",
+  "where": "Indicator while uploading"
+ },
+ "syncOffline": {
+  "group": "2 Sync indicator & banners",
+  "kind": "chip",
+  "where": "Indicator when the phone has no connection"
+ },
+ "syncErr": {
+  "group": "2 Sync indicator & banners",
+  "kind": "chip",
+  "where": "Indicator when the last upload failed"
+ },
+ "syncAuth": {
+  "group": "2 Sync indicator & banners",
+  "kind": "chip",
+  "where": "Indicator when the passcode was rejected"
+ },
+ "syncNone": {
+  "group": "2 Sync indicator & banners",
+  "kind": "chip",
+  "where": "Indicator before the server is set up"
+ },
+ "pendingTag": {
+  "group": "2 Sync indicator & banners",
+  "kind": "chip",
+  "where": "Small tag on a day card that hasn't uploaded yet"
+ },
+ "offlineBanner": {
+  "group": "2 Sync indicator & banners",
+  "kind": "message",
+  "where": "Banner when offline with unsent changes"
+ },
+ "authBanner": {
+  "group": "2 Sync indicator & banners",
+  "kind": "message",
+  "where": "Banner when the passcode is wrong or changed"
+ },
+ "setupBanner": {
+  "group": "2 Sync indicator & banners",
+  "kind": "message",
+  "where": "Banner before the server connection is set up"
+ },
+ "errBanner": {
+  "group": "2 Sync indicator & banners",
+  "kind": "message",
+  "where": "Banner after a failed upload"
+ },
+ "storageWarn": {
+  "group": "2 Sync indicator & banners",
+  "kind": "message",
+  "where": "Banner when the browser won't store data (private mode)"
+ },
+ "newEntry": {
+  "group": "3 New day form",
+  "kind": "title",
+  "where": "Heading of the form for a new day"
+ },
+ "editEntry": {
+  "group": "3 New day form",
+  "kind": "title",
+  "where": "Heading when editing an existing day"
+ },
+ "plogDay": {
+  "group": "3 New day form",
+  "kind": "button",
+  "where": "Switch at the top of the form: a plogging day"
+ },
+ "restDay": {
+  "group": "3 New day form",
+  "kind": "button",
+  "where": "Switch at the top of the form: a day without plogging"
+ },
+ "date": {
+  "group": "3 New day form",
+  "kind": "label",
+  "where": "Field label: date"
+ },
+ "dayNo": {
+  "group": "3 New day form",
+  "kind": "label",
+  "where": "Field label: day number in the series (Day 1, Day 2…)"
+ },
+ "start": {
+  "group": "3 New day form",
+  "kind": "label",
+  "where": "Field label: start time"
+ },
+ "end": {
+  "group": "3 New day form",
+  "kind": "label",
+  "where": "Field label: end time"
+ },
+ "distance": {
+  "group": "3 New day form",
+  "kind": "label",
+  "where": "Field label: distance walked, in km"
+ },
+ "place": {
+  "group": "3 New day form",
+  "kind": "label",
+  "where": "Field label: place or route"
+ },
+ "placePh": {
+  "group": "3 New day form",
+  "kind": "placeholder",
+  "where": "Example text inside the place box"
+ },
+ "people": {
+  "group": "3 New day form",
+  "kind": "label",
+  "where": "Field label: who came (list of names)"
+ },
+ "personPh": {
+  "group": "3 New day form",
+  "kind": "placeholder",
+  "where": "Example text inside the name box"
+ },
+ "addBtn": {
+  "group": "3 New day form",
+  "kind": "button",
+  "where": "Button next to the name box to add a person"
+ },
+ "others": {
+  "group": "3 New day form",
+  "kind": "label",
+  "where": "Counter label: number of helpers whose names weren't written"
+ },
+ "items": {
+  "group": "3 New day form",
+  "kind": "label",
+  "where": "Section heading: counts of trash collected"
+ },
+ "extras": {
+  "group": "3 New day form",
+  "kind": "label",
+  "where": "Section heading: items not in the category list"
+ },
+ "extraName": {
+  "group": "3 New day form",
+  "kind": "placeholder",
+  "where": "Example text inside an 'other item' name box"
+ },
+ "addExtra": {
+  "group": "3 New day form",
+  "kind": "button",
+  "where": "Button to add an unlisted item"
+ },
+ "volume": {
+  "group": "3 New day form",
+  "kind": "label",
+  "where": "Section heading: optional bags/weight"
+ },
+ "bags": {
+  "group": "3 New day form",
+  "kind": "label",
+  "where": "Field hint: number of bags or buckets filled"
+ },
+ "weight": {
+  "group": "3 New day form",
+  "kind": "label",
+  "where": "Field hint: total weight in kg"
+ },
+ "notes": {
+  "group": "3 New day form",
+  "kind": "label",
+  "where": "Field label: free-text impressions of the day"
+ },
+ "notesPh": {
+  "group": "3 New day form",
+  "kind": "placeholder",
+  "where": "Example text inside the impressions box"
+ },
+ "reason": {
+  "group": "3 New day form",
+  "kind": "label",
+  "where": "Field label on a no-plogging day: why"
+ },
+ "reasonPh": {
+  "group": "3 New day form",
+  "kind": "placeholder",
+  "where": "Example text inside the reason box"
+ },
+ "save": {
+  "group": "3 New day form",
+  "kind": "button",
+  "where": "Save button at the bottom of the form"
+ },
+ "cancel": {
+  "group": "3 New day form",
+  "kind": "button",
+  "where": "Cancel button at the bottom of the form"
+ },
+ "needDate": {
+  "group": "3 New day form",
+  "kind": "message",
+  "where": "Pop-up when saving without a date"
+ },
+ "dupDate": {
+  "group": "3 New day form",
+  "kind": "message",
+  "where": "Warning under the date when that date already has an entry"
+ },
+ "media": {
+  "group": "4 Photos & videos",
+  "kind": "label",
+  "where": "Section heading: photos and videos"
+ },
+ "addMedia": {
+  "group": "4 Photos & videos",
+  "kind": "button",
+  "where": "Button that opens the gallery to choose photos and videos"
+ },
+ "mediaHint": {
+  "group": "4 Photos & videos",
+  "kind": "message",
+  "where": "Help text under the media button"
+ },
+ "videoBig": {
+  "group": "4 Photos & videos",
+  "kind": "message",
+  "where": "Pop-up when a video is over 500 MB"
+ },
+ "phoneFull": {
+  "group": "4 Photos & videos",
+  "kind": "message",
+  "where": "Pop-up when the phone has no space to keep a file"
+ },
+ "photoFail": {
+  "group": "4 Photos & videos",
+  "kind": "message",
+  "where": "Pop-up when a chosen file can't be read"
+ },
+ "aiBtn": {
+  "group": "5 AI suggestions",
+  "kind": "button",
+  "where": "Button that asks the AI to suggest counts from the photos"
+ },
+ "aiNeedMedia": {
+  "group": "5 AI suggestions",
+  "kind": "message",
+  "where": "Hint under the AI button when no photos are added yet"
+ },
+ "aiOffline": {
+  "group": "5 AI suggestions",
+  "kind": "message",
+  "where": "Hint under the AI button when offline"
+ },
+ "aiWorking": {
+  "group": "5 AI suggestions",
+  "kind": "message",
+  "where": "Text on the AI button while waiting"
+ },
+ "aiTitle": {
+  "group": "5 AI suggestions",
+  "kind": "message",
+  "where": "Heading of the AI suggestion panel"
+ },
+ "aiNow": {
+  "group": "5 AI suggestions",
+  "kind": "chip",
+  "where": "In each AI row: the number already entered ('now 4')"
+ },
+ "aiApply": {
+  "group": "5 AI suggestions",
+  "kind": "button",
+  "where": "Button in the AI panel: add the ticked suggestions"
+ },
+ "aiDismiss": {
+  "group": "5 AI suggestions",
+  "kind": "button",
+  "where": "Button in the AI panel: close without adding"
+ },
+ "aiVisible": {
+  "group": "5 AI suggestions",
+  "kind": "chip",
+  "where": "Under an AI row: only visible items were counted"
+ },
+ "aiUnreliable": {
+  "group": "5 AI suggestions",
+  "kind": "message",
+  "where": "Warning in the AI panel when much of the trash is bagged"
+ },
+ "aiHaz": {
+  "group": "5 AI suggestions",
+  "kind": "message",
+  "where": "Start of the hazard line in the AI panel ('Hazardous: syringes')"
+ },
+ "aiFail": {
+  "group": "5 AI suggestions",
+  "kind": "message",
+  "where": "Pop-up when the AI request fails (an error follows)"
+ },
+ "aiApplied": {
+  "group": "5 AI suggestions",
+  "kind": "message",
+  "where": "Pop-up after adding AI suggestions"
+ },
+ "aiNone": {
+  "group": "5 AI suggestions",
+  "kind": "message",
+  "where": "AI panel text when nothing countable was found"
+ },
+ "confhigh": {
+  "group": "5 AI suggestions",
+  "kind": "chip",
+  "where": "Under an AI row: the AI is sure"
+ },
+ "confmedium": {
+  "group": "5 AI suggestions",
+  "kind": "chip",
+  "where": "Under an AI row: approximate"
+ },
+ "conflow": {
+  "group": "5 AI suggestions",
+  "kind": "chip",
+  "where": "Under an AI row: rough guess"
+ },
+ "aiNew": {
+  "group": "5 AI suggestions",
+  "kind": "chip",
+  "where": "Under an AI row: an item not in the category list"
+ },
+ "photoTip": {
+  "group": "5 AI suggestions",
+  "kind": "message",
+  "where": "Hint under the AI button: how to photograph for accurate counts"
+ },
+ "day": {
+  "group": "6 Journal",
+  "kind": "chip",
+  "where": "Badge on each card: 'Day 5'"
+ },
+ "del": {
+  "group": "6 Journal",
+  "kind": "button",
+  "where": "Button on an opened day: delete"
+ },
+ "edit": {
+  "group": "6 Journal",
+  "kind": "button",
+  "where": "Button on an opened day: edit"
+ },
+ "yes": {
+  "group": "6 Journal",
+  "kind": "button",
+  "where": "Confirm button in the delete dialog"
+ },
+ "no": {
+  "group": "6 Journal",
+  "kind": "button",
+  "where": "Cancel button in the delete dialog"
+ },
+ "confirmDel": {
+  "group": "6 Journal",
+  "kind": "message",
+  "where": "Delete confirmation question"
+ },
+ "noEntries": {
+  "group": "6 Journal",
+  "kind": "message",
+  "where": "Text on the empty journal"
+ },
+ "firstEntry": {
+  "group": "6 Journal",
+  "kind": "button",
+  "where": "Button on the empty journal"
+ },
+ "saved": {
+  "group": "6 Journal",
+  "kind": "message",
+  "where": "Pop-up after saving"
+ },
+ "savedLocal": {
+  "group": "6 Journal",
+  "kind": "message",
+  "where": "Pop-up after saving without a connection"
+ },
+ "deleted": {
+  "group": "6 Journal",
+  "kind": "message",
+  "where": "Pop-up after deleting"
+ },
+ "allTime": {
+  "group": "6 Journal",
+  "kind": "message",
+  "where": "Suffix on the total-items tile: 'Items collected · so far'"
+ },
+ "restLabel": {
+  "group": "6 Journal",
+  "kind": "chip",
+  "where": "Badge on a no-plogging day card"
+ },
+ "km": {
+  "group": "7 Units",
+  "kind": "unit",
+  "where": "Unit after a distance"
+ },
+ "min": {
+  "group": "7 Units",
+  "kind": "unit",
+  "where": "Unit: minutes"
+ },
+ "hr": {
+  "group": "7 Units",
+  "kind": "unit",
+  "where": "Unit: hours (short)"
+ },
+ "ppl": {
+  "group": "7 Units",
+  "kind": "unit",
+  "where": "Unit after a number of people"
+ },
+ "pcs": {
+  "group": "7 Units",
+  "kind": "unit",
+  "where": "Unit after a number of items"
+ },
+ "r7": {
+  "group": "8 Stats",
+  "kind": "chip",
+  "where": "Range button"
+ },
+ "r30": {
+  "group": "8 Stats",
+  "kind": "chip",
+  "where": "Range button"
+ },
+ "rMonth": {
+  "group": "8 Stats",
+  "kind": "chip",
+  "where": "Range button"
+ },
+ "rYear": {
+  "group": "8 Stats",
+  "kind": "chip",
+  "where": "Range button"
+ },
+ "rAll": {
+  "group": "8 Stats",
+  "kind": "chip",
+  "where": "Range button: everything"
+ },
+ "rCustom": {
+  "group": "8 Stats",
+  "kind": "chip",
+  "where": "Range button: choose dates"
+ },
+ "from": {
+  "group": "8 Stats",
+  "kind": "label",
+  "where": "Custom range: start date"
+ },
+ "to": {
+  "group": "8 Stats",
+  "kind": "label",
+  "where": "Custom range: end date"
+ },
+ "kOutings": {
+  "group": "8 Stats",
+  "kind": "label",
+  "where": "Number tile: days plogged"
+ },
+ "kItems": {
+  "group": "8 Stats",
+  "kind": "label",
+  "where": "Number tile: total items"
+ },
+ "kKm": {
+  "group": "8 Stats",
+  "kind": "label",
+  "where": "Number tile: total distance"
+ },
+ "kHours": {
+  "group": "8 Stats",
+  "kind": "label",
+  "where": "Number tile: total time"
+ },
+ "kPeople": {
+  "group": "8 Stats",
+  "kind": "label",
+  "where": "Number tile: different people who took part"
+ },
+ "kPerKm": {
+  "group": "8 Stats",
+  "kind": "label",
+  "where": "Number tile: items per km"
+ },
+ "kPerDay": {
+  "group": "8 Stats",
+  "kind": "label",
+  "where": "Number tile: average items per day"
+ },
+ "kHaz": {
+  "group": "8 Stats",
+  "kind": "label",
+  "where": "Number tile: hazardous items"
+ },
+ "kRest": {
+  "group": "8 Stats",
+  "kind": "label",
+  "where": "Number tile: days without plogging"
+ },
+ "kBags": {
+  "group": "8 Stats",
+  "kind": "label",
+  "where": "Number tile: bags/buckets filled"
+ },
+ "kKg": {
+  "group": "8 Stats",
+  "kind": "label",
+  "where": "Number tile: total weight"
+ },
+ "byItem": {
+  "group": "8 Stats",
+  "kind": "title",
+  "where": "Card heading: totals per category"
+ },
+ "byDay": {
+  "group": "8 Stats",
+  "kind": "title",
+  "where": "Card heading: chart of items per day"
+ },
+ "byPlace": {
+  "group": "8 Stats",
+  "kind": "title",
+  "where": "Card heading: table per place"
+ },
+ "byPerson": {
+  "group": "8 Stats",
+  "kind": "title",
+  "where": "Card heading: table per person"
+ },
+ "colPlace": {
+  "group": "8 Stats",
+  "kind": "label",
+  "where": "Table column: place"
+ },
+ "colDays": {
+  "group": "8 Stats",
+  "kind": "label",
+  "where": "Table column: number of days"
+ },
+ "colItems": {
+  "group": "8 Stats",
+  "kind": "label",
+  "where": "Table column: number of items"
+ },
+ "colName": {
+  "group": "8 Stats",
+  "kind": "label",
+  "where": "Table column: person's name"
+ },
+ "noData": {
+  "group": "8 Stats",
+  "kind": "message",
+  "where": "Text when the chosen range has no days"
+ },
+ "partial": {
+  "group": "8 Stats",
+  "kind": "message",
+  "where": "Note when some days lack distance/time"
+ },
+ "wifiOnly": {
+  "group": "9 Settings",
+  "kind": "label",
+  "where": "Checkbox: upload videos only on Wi-Fi"
+ },
+ "sTitle": {
+  "group": "9 Settings",
+  "kind": "label",
+  "where": "Field label: title/village name shown under the app name"
+ },
+ "sItems": {
+  "group": "9 Settings",
+  "kind": "title",
+  "where": "Card heading: trash categories"
+ },
+ "sItemsHint": {
+  "group": "9 Settings",
+  "kind": "message",
+  "where": "Help text under the category list"
+ },
+ "nameKn": {
+  "group": "9 Settings",
+  "kind": "label",
+  "where": "(old) placeholder: Kannada name of a new category"
+ },
+ "nameEn": {
+  "group": "9 Settings",
+  "kind": "label",
+  "where": "(old) placeholder: English name of a new category"
+ },
+ "hazard": {
+  "group": "9 Settings",
+  "kind": "label",
+  "where": "Checkbox: mark a category as hazardous"
+ },
+ "newItem": {
+  "group": "9 Settings",
+  "kind": "button",
+  "where": "Button: add a new category"
+ },
+ "hide": {
+  "group": "9 Settings",
+  "kind": "button",
+  "where": "Tooltip: hide a category"
+ },
+ "show": {
+  "group": "9 Settings",
+  "kind": "button",
+  "where": "Tooltip: show a hidden category"
+ },
+ "saveSettings": {
+  "group": "9 Settings",
+  "kind": "button",
+  "where": "Button: save title and categories"
+ },
+ "export": {
+  "group": "9 Settings",
+  "kind": "title",
+  "where": "Card heading: export and backup"
+ },
+ "csv": {
+  "group": "9 Settings",
+  "kind": "button",
+  "where": "Button: download a CSV file"
+ },
+ "json": {
+  "group": "9 Settings",
+  "kind": "button",
+  "where": "Button: download a full backup"
+ },
+ "importT": {
+  "group": "9 Settings",
+  "kind": "title",
+  "where": "Card heading: add days from a backup file"
+ },
+ "importBtn": {
+  "group": "9 Settings",
+  "kind": "button",
+  "where": "Button: choose a backup file"
+ },
+ "imported": {
+  "group": "9 Settings",
+  "kind": "message",
+  "where": "Pop-up after importing: 'Entries added: 7'"
+ },
+ "importFail": {
+  "group": "9 Settings",
+  "kind": "message",
+  "where": "Pop-up when a backup file can't be read"
+ },
+ "promoteHint": {
+  "group": "9 Settings",
+  "kind": "message",
+  "where": "Hint above suggested categories from 'other items'"
+ },
+ "syncNow": {
+  "group": "9 Settings",
+  "kind": "button",
+  "where": "Button: upload now"
+ },
+ "lastSync": {
+  "group": "9 Settings",
+  "kind": "label",
+  "where": "Text: 'Last synced: <time>'"
+ },
+ "pendingN": {
+  "group": "9 Settings",
+  "kind": "label",
+  "where": "Text: 'Changes waiting to upload: 3'"
+ },
+ "connection": {
+  "group": "9 Settings",
+  "kind": "title",
+  "where": "Card heading: server connection"
+ },
+ "apiUrl": {
+  "group": "9 Settings",
+  "kind": "label",
+  "where": "Field label: Apps Script address"
+ },
+ "passcode": {
+  "group": "9 Settings",
+  "kind": "label",
+  "where": "Field label: passcode"
+ },
+ "connect": {
+  "group": "9 Settings",
+  "kind": "button",
+  "where": "Button: test and save the connection"
+ },
+ "connected": {
+  "group": "9 Settings",
+  "kind": "message",
+  "where": "Pop-up when the connection works"
+ },
+ "connFail": {
+  "group": "9 Settings",
+  "kind": "message",
+  "where": "Pop-up when it doesn't (an error follows)"
+ },
+ "wrongPass": {
+  "group": "9 Settings",
+  "kind": "message",
+  "where": "Pop-up for a wrong passcode"
+ },
+ "openSheet": {
+  "group": "9 Settings",
+  "kind": "button",
+  "where": "Button: open the Google Sheet"
+ },
+ "openFolder": {
+  "group": "9 Settings",
+  "kind": "button",
+  "where": "Button: open the Drive folder"
+ },
+ "install": {
+  "group": "9 Settings",
+  "kind": "button",
+  "where": "Button: add the app to the home screen"
+ },
+ "catName": {
+  "group": "9 Settings",
+  "kind": "label",
+  "where": "Placeholder: name of a new category in a language — {lang} is replaced by the language name"
+ },
+ "langsTitle": {
+  "group": "9 Settings",
+  "kind": "title",
+  "where": "Card heading: languages offered in the app"
+ },
+ "langsHint": {
+  "group": "9 Settings",
+  "kind": "message",
+  "where": "Help text in the languages card"
+ },
+ "saveLangs": {
+  "group": "9 Settings",
+  "kind": "button",
+  "where": "Button: save the chosen languages"
+ },
+ "labelsTitle": {
+  "group": "9 Settings",
+  "kind": "title",
+  "where": "Card heading: editing the app's labels"
+ },
+ "labelsHint": {
+  "group": "9 Settings",
+  "kind": "message",
+  "where": "Help text in the labels card"
+ },
+ "seedLabels": {
+  "group": "9 Settings",
+  "kind": "button",
+  "where": "Button: copy all labels into the Google Sheet for editing"
+ },
+ "seedDone": {
+  "group": "9 Settings",
+  "kind": "message",
+  "where": "Pop-up after labels are copied to the Sheet: 'Labels added: 40'"
+ },
+ "langMenu": {
+  "group": "9 Settings",
+  "kind": "message",
+  "where": "Heading of the language chooser opened from the top bar"
+ },
+ "pkType": {
+  "group": "11 Pickups",
+  "kind": "button",
+  "where": "Third switch at the top of the form: record a pickup"
+ },
+ "pkShort": {
+  "group": "11 Pickups",
+  "kind": "chip",
+  "where": "Badge on a pickup card in the journal"
+ },
+ "pkTitle": {
+  "group": "11 Pickups",
+  "kind": "title",
+  "where": "Heading of the pickup form"
+ },
+ "pkEditTitle": {
+  "group": "11 Pickups",
+  "kind": "title",
+  "where": "Heading when editing a pickup"
+ },
+ "pkWho": {
+  "group": "11 Pickups",
+  "kind": "label",
+  "where": "Pickup form: who collected (also a stats column)"
+ },
+ "agPanchayat": {
+  "group": "11 Pickups",
+  "kind": "chip",
+  "where": "Choice: Gram Panchayat"
+ },
+ "agMunicipal": {
+  "group": "11 Pickups",
+  "kind": "chip",
+  "where": "Choice: town / city municipality"
+ },
+ "agScrap": {
+  "group": "11 Pickups",
+  "kind": "chip",
+  "where": "Choice: scrap dealer (gujari)"
+ },
+ "agOther": {
+  "group": "11 Pickups",
+  "kind": "chip",
+  "where": "Choice: someone else"
+ },
+ "pkNamePh": {
+  "group": "11 Pickups",
+  "kind": "placeholder",
+  "where": "Pickup form: name or vehicle number"
+ },
+ "pkTime": {
+  "group": "11 Pickups",
+  "kind": "label",
+  "where": "Pickup form: time"
+ },
+ "pkDays": {
+  "group": "11 Pickups",
+  "kind": "title",
+  "where": "Pickup form: list of days whose trash was taken"
+ },
+ "pkDaysHint": {
+  "group": "11 Pickups",
+  "kind": "message",
+  "where": "Help under the day list"
+ },
+ "pkAll": {
+  "group": "11 Pickups",
+  "kind": "button",
+  "where": "Tick all days"
+ },
+ "pkNone": {
+  "group": "11 Pickups",
+  "kind": "button",
+  "where": "Untick all days"
+ },
+ "pkKeys": {
+  "group": "11 Pickups",
+  "kind": "title",
+  "where": "Pickup form: which categories were taken"
+ },
+ "pkKeysHint": {
+  "group": "11 Pickups",
+  "kind": "message",
+  "where": "Help under the category choice"
+ },
+ "pkOther": {
+  "group": "11 Pickups",
+  "kind": "chip",
+  "where": "Stands for the unlisted 'other items' in a pickup"
+ },
+ "pkNoPending": {
+  "group": "11 Pickups",
+  "kind": "message",
+  "where": "When no day is waiting"
+ },
+ "pkNeedDays": {
+  "group": "11 Pickups",
+  "kind": "message",
+  "where": "Pop-up: no day chosen"
+ },
+ "pkNeedKeys": {
+  "group": "11 Pickups",
+  "kind": "message",
+  "where": "Pop-up: no category chosen"
+ },
+ "pkNotesPh": {
+  "group": "11 Pickups",
+  "kind": "placeholder",
+  "where": "Pickup notes example"
+ },
+ "stWaiting": {
+  "group": "11 Pickups",
+  "kind": "chip",
+  "where": "Status on a day card: not yet picked up"
+ },
+ "stPart": {
+  "group": "11 Pickups",
+  "kind": "chip",
+  "where": "Status on a day card: some categories picked up — a count follows"
+ },
+ "stDone": {
+  "group": "11 Pickups",
+  "kind": "chip",
+  "where": "Status on a day card: picked up — date and collector follow"
+ },
+ "pkBanner": {
+  "group": "11 Pickups",
+  "kind": "message",
+  "where": "Journal banner: {n} items, {d} days waiting — keep {n} and {d}"
+ },
+ "pkRecord": {
+  "group": "11 Pickups",
+  "kind": "button",
+  "where": "Journal banner button: record a pickup"
+ },
+ "pkCovers": {
+  "group": "11 Pickups",
+  "kind": "label",
+  "where": "Opened pickup card: list of days covered"
+ },
+ "kHanded": {
+  "group": "11 Pickups",
+  "kind": "label",
+  "where": "Number tile: items handed over in the period"
+ },
+ "kWaiting": {
+  "group": "11 Pickups",
+  "kind": "label",
+  "where": "Number tile: items waiting for pickup now"
+ },
+ "kPickups": {
+  "group": "11 Pickups",
+  "kind": "label",
+  "where": "Number tile: number of pickups"
+ },
+ "kWait": {
+  "group": "11 Pickups",
+  "kind": "label",
+  "where": "Number tile: average days between plogging and pickup"
+ },
+ "byAgency": {
+  "group": "11 Pickups",
+  "kind": "title",
+  "where": "Stats card: pickups per collector"
+ },
+ "colPickups": {
+  "group": "11 Pickups",
+  "kind": "label",
+  "where": "Table column: number of pickups"
+ },
+ "library": {
+  "group": "12 Library",
+  "kind": "label",
+  "where": "tab label"
+ },
+ "libSearch": {
+  "group": "12 Library",
+  "kind": "message",
+  "where": "search box placeholder"
+ },
+ "libNoMatch": {
+  "group": "12 Library",
+  "kind": "message",
+  "where": "search shows nothing"
+ },
+ "libNewTopic": {
+  "group": "12 Library",
+  "kind": "label",
+  "where": "button: + new topic"
+ },
+ "libAddFiles": {
+  "group": "12 Library",
+  "kind": "label",
+  "where": "button: + add files"
+ },
+ "libTopicMenu": {
+  "group": "12 Library",
+  "kind": "label",
+  "where": "⋯ button (screen readers)"
+ },
+ "libEmpty": {
+  "group": "12 Library",
+  "kind": "message",
+  "where": "empty library"
+ },
+ "libEmptyTopic": {
+  "group": "12 Library",
+  "kind": "message",
+  "where": "empty topic"
+ },
+ "libRenameTopic": {
+  "group": "12 Library",
+  "kind": "message",
+  "where": "menu item and sheet title"
+ },
+ "libMove": {
+  "group": "12 Library",
+  "kind": "message",
+  "where": "move a topic or file"
+ },
+ "libMoveUp": {
+  "group": "12 Library",
+  "kind": "message",
+  "where": "reorder topic"
+ },
+ "libDeleteTopic": {
+  "group": "12 Library",
+  "kind": "message",
+  "where": "menu item"
+ },
+ "libNotEmpty": {
+  "group": "12 Library",
+  "kind": "message",
+  "where": "message"
+ },
+ "libConfirmDelTopic": {
+  "group": "12 Library",
+  "kind": "message",
+  "where": "confirmation; {name} = topic"
+ },
+ "libConfirmDelFile": {
+  "group": "12 Library",
+  "kind": "message",
+  "where": "confirmation; {name} = file"
+ },
+ "libNeedName": {
+  "group": "12 Library",
+  "kind": "message",
+  "where": "message"
+ },
+ "libTooBig": {
+  "group": "12 Library",
+  "kind": "message",
+  "where": "message"
+ },
+ "libAdded": {
+  "group": "12 Library",
+  "kind": "message",
+  "where": "message; {n} = count"
+ },
+ "libTitle": {
+  "group": "12 Library",
+  "kind": "label",
+  "where": "field label"
+ },
+ "libNote": {
+  "group": "12 Library",
+  "kind": "label",
+  "where": "field label"
+ },
+ "libNotePh": {
+  "group": "12 Library",
+  "kind": "message",
+  "where": "field hint"
+ },
+ "libLinkDay": {
+  "group": "12 Library",
+  "kind": "label",
+  "where": "field label"
+ }
+}

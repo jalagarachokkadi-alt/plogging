@@ -1,0 +1,15 @@
+[
+ {"code":"kn","name":"ಕನ್ನಡ","english":"Kannada","short":"ಕ","intl":"kn-IN","font":"Noto Sans Kannada"},
+ {"code":"en","name":"English","english":"English","short":"EN","intl":"en-IN","font":"Noto Sans"},
+ {"code":"tcy","name":"ತುಳು","english":"Tulu (Kannada script)","short":"ತು","intl":"kn-IN","font":"Noto Sans Kannada"},
+ {"code":"kok","name":"ಕೊಂಕಣಿ","english":"Konkani (Kannada script)","short":"ಕೊಂ","intl":"kn-IN","font":"Noto Sans Kannada"},
+ {"code":"hi","name":"हिन्दी","english":"Hindi","short":"हि","intl":"hi-IN","font":"Noto Sans Devanagari"},
+ {"code":"mr","name":"मराठी","english":"Marathi","short":"म","intl":"mr-IN","font":"Noto Sans Devanagari"},
+ {"code":"ta","name":"தமிழ்","english":"Tamil","short":"த","intl":"ta-IN","font":"Noto Sans Tamil"},
+ {"code":"te","name":"తెలుగు","english":"Telugu","short":"తె","intl":"te-IN","font":"Noto Sans Telugu"},
+ {"code":"ml","name":"മലയാളം","english":"Malayalam","short":"മ","intl":"ml-IN","font":"Noto Sans Malayalam"},
+ {"code":"bn","name":"বাংলা","english":"Bengali","short":"বা","intl":"bn-IN","font":"Noto Sans Bengali"},
+ {"code":"gu","name":"ગુજરાતી","english":"Gujarati","short":"ગુ","intl":"gu-IN","font":"Noto Sans Gujarati"},
+ {"code":"pa","name":"ਪੰਜਾਬੀ","english":"Punjabi","short":"ਪੰ","intl":"pa-IN","font":"Noto Sans Gurmukhi"},
+ {"code":"or","name":"ଓଡ଼ିଆ","english":"Odia","short":"ଓ","intl":"or-IN","font":"Noto Sans Oriya"}
+]
