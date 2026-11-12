@@ -836,10 +836,11 @@ function renderJournal(){
   const tot=plog.reduce((s,e)=>s+entryTotal(e),0);
   const col=collection();
   const wDays=Object.values(col).filter(r=>r.waitingCount>0), wItems=wDays.reduce((s,r)=>s+r.waitingCount,0);
-  let h=journalSwitch();
-  if(S.jmode==="photos"){ $("#view").innerHTML=h+galleryHtml(list,nums); bindJournalSwitch(); bindGallery(list,nums); return; }
+  // one slim line: the totals so far, and the Days | Photos switch
+  let h='<div class="jhead"><span class="jsum">'+esc(t("jSum")).replace("{d}","<b>"+fmt(plog.length,0)+"</b>").replace("{n}","<b>"+fmt(tot,0)+"</b>")+'</span>'+journalSwitch()+'</div>';
+  if(S.jmode==="photos"){ $("#view").innerHTML=h+galleryHtml(list,nums); bindJournalSwitch(); bindGallery(list,nums); setPkBar(0,0); return; }
   setPkBar(wItems,wDays.length);
-  h+='<div class="kpis"><div class="kpi"><div class="v">'+fmt(plog.length,0)+'</div><div class="l">'+esc(t("kOutings"))+'</div></div><div class="kpi"><div class="v">'+fmt(tot,0)+'</div><div class="l">'+esc(t("kItems"))+' · '+esc(t("allTime"))+'</div></div></div>';
+
   let lastMonth="";
   for(const e of list){
     const mo=e.date.slice(0,7);
@@ -878,7 +879,7 @@ function entryCard(e,n,col){
   if(num(e.bags)) meta.push("🪣 "+fmt(num(e.bags),0));
   if(num(e.weightKg)) meta.push("⚖️ "+fmt(num(e.weightKg))+" kg");
   const cs=col[e.id];
-  const status= !cs||cs.status==="empty" ? "" : cs.status==="all" ? '<span class="pkst done">✓ '+esc(t("stDone"))+' · '+esc(fmtDate(cs.last.date,{day:"numeric",month:"short"}))+(agencyLabel(cs.last)?' · '+esc(agencyLabel(cs.last)):"")+'</span>'
+  const status= !cs||cs.status==="empty"||cs.status==="none" ? "" : cs.status==="all" ? '<span class="pkst done">✓ '+esc(t("stDone"))+' · '+esc(fmtDate(cs.last.date,{day:"numeric",month:"short"}))+(agencyLabel(cs.last)?' · '+esc(agencyLabel(cs.last)):"")+'</span>'
     : cs.status==="part" ? '<span class="pkst part">◐ '+esc(t("stPart"))+' · '+fmt(cs.waitingCount,0)+' '+esc(t("pcs"))+'</span>' : '<span class="pkst wait">🕓 '+esc(t("stWaiting"))+'</span>';
   const st=!cs||cs.status==="empty"? "" : cs.status;
   const totCls= st==="all"?" st-done" : st==="part"?" st-part" : st==="none"?" st-wait" : "";
@@ -1613,7 +1614,19 @@ async function init(){
   await setLang(I18N.langs.some(l=>l.code===want)? want : "kn");
   route();
   if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{});
-  if("serviceWorker" in navigator && location.protocol!=="file:") navigator.serviceWorker.register("sw.js").catch(()=>{});
+  if("serviceWorker" in navigator && location.protocol!=="file:"){
+    // look for a new version each time the app is opened or comes back to the front
+    navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(reg=>{
+      document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible") reg.update().catch(()=>{}); });
+    }).catch(()=>{});
+    // when the new version takes over, reload, but never in the middle of filling a form
+    let had=!!navigator.serviceWorker.controller, reloading=false;
+    const reloadSoon=()=>{ if(reloading) return;
+      const busy=()=>currentView()==="add"||sheetOpen()||($("#viewer")&&$("#viewer").style.display==="block");
+      if(!busy()){ reloading=true; location.reload(); }
+      else window.addEventListener("hashchange",function h(){ if(!busy()){ window.removeEventListener("hashchange",h); reloading=true; location.reload(); } }); };
+    navigator.serviceWorker.addEventListener("controllerchange",()=>{ if(had) reloadSoon(); had=true; });
+  }
   kickSync(200);
 }
 init();

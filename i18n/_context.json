@@ -1223,5 +1223,10 @@
   "group": "9 Settings",
   "kind": "label",
   "where": "Settings → connection card: per-phone switch for translating content"
+ },
+ "jSum": {
+  "group": "13 Photos & viewer",
+  "kind": "label",
+  "where": "journal, top line beside the Days | Photos switch; {d} = plogging days, {n} = items so far"
  }
 }

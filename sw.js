@@ -1,7 +1,7 @@
 /* Service worker: keeps ಜಲಗಾರ usable offline.
    Language files other than en/kn are cached the first time they are used.
    Bump VERSION whenever you change index.html / app.js / config.js. */
-const VERSION="v24";
+const VERSION="v27";
 const SHELL = "plog-shell-" + VERSION;
 const MEDIA = "plog-media";
 const FILES = ["./", "./index.html", "./app.js", "./config.js", "./manifest.webmanifest",
@@ -10,7 +10,8 @@ const FILES = ["./", "./index.html", "./app.js", "./config.js", "./manifest.webm
 const MEDIA_MAX = 150;
 
 self.addEventListener("install", e => {
-  e.waitUntil(caches.open(SHELL).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
+  // cache:"reload" skips the browser's HTTP cache, so a new version never stores older copies of the files
+  e.waitUntil(caches.open(SHELL).then(c => c.addAll(FILES.map(f => new Request(f, { cache: "reload" })))).then(() => self.skipWaiting()));
 });
 self.addEventListener("activate", e => {
   e.waitUntil(caches.keys().then(keys => Promise.all(
@@ -33,16 +34,17 @@ self.addEventListener("fetch", e => {
   const url = new URL(req.url);
 
   if (url.origin === self.location.origin) {
-    // app files: answer from cache at once, refresh the cache in the background
+    // app files come from this version's cache, so index.html and app.js always match.
+    // A new version arrives as a new service worker (VERSION changed); the page then reloads itself.
     if (req.mode === "navigate") {
-      e.respondWith(fetch(req).then(r => { const c = r.clone(); caches.open(SHELL).then(x => x.put("./index.html", c)); return r; })
-        .catch(() => caches.match("./index.html")));
+      e.respondWith(caches.open(SHELL).then(c => c.match("./index.html")).then(hit => hit || fetch(req)));
       return;
     }
-    e.respondWith(caches.match(req).then(hit => {
-      const net = fetch(req).then(r => { if (r.ok) { const c = r.clone(); caches.open(SHELL).then(x => x.put(req, c)); } return r; }).catch(() => hit);
-      return hit || net;
-    }));
+    e.respondWith(caches.open(SHELL).then(c => c.match(req, { ignoreSearch: true })).then(hit => hit || fetch(req).then(r => {
+      // files not in the shell list (other languages): keep a copy for offline use
+      if (r.ok && /\/i18n\//.test(url.pathname)) { const c = r.clone(); caches.open(SHELL).then(x => x.put(req, c)); }
+      return r;
+    })));
     return;
   }
 

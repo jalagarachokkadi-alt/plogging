@@ -243,5 +243,6 @@
  "syncCheck": "Checking for updates…",
  "pkBarCount": "{n} items · {d} days",
  "txNote": "Translated automatically. Tap to see the original.",
- "txSetting": "Show others' notes and titles in my language (AI translation)"
+ "txSetting": "Show others' notes and titles in my language (AI translation)",
+ "jSum": "{d} days · {n} items"
 }
