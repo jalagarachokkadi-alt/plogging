@@ -233,11 +233,15 @@
  "libSave": "Save",
  "libSaved": "Saved",
  "setSaved": "Saved",
- "mtNote": "AI: translated automatically. Tap to correct it.",
+ "mtNote": "Translated automatically. Tap to correct it.",
  "renameCat": "Category name",
  "promoteT": "Repeated 'other items'",
  "promoteCount": "{d} days, {n} items",
  "promoteBtn": "Make a category",
  "promoteSheetHint": "Check the name in each language. The counts from those {d} days ({n} items) move into the new category.",
- "promoteDone": "New category made; {d} days updated."
+ "promoteDone": "New category made; {d} days updated.",
+ "syncCheck": "Checking for updates…",
+ "pkBarCount": "{n} items · {d} days",
+ "txNote": "Translated automatically. Tap to see the original.",
+ "txSetting": "Show others' notes and titles in my language (AI translation)"
 }

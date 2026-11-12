@@ -1203,5 +1203,25 @@
   "group": "10 Trash categories",
   "kind": "label",
   "where": "message after making the category; {d} = days"
+ },
+ "syncCheck": {
+  "group": "2 Sync indicator & banners",
+  "kind": "status",
+  "where": "sync indicator, the first time a phone checks the server (nothing to upload)"
+ },
+ "pkBarCount": {
+  "group": "11 Pickups",
+  "kind": "label",
+  "where": "bar above the bottom tabs while trash waits for pickup; {n} = items, {d} = days"
+ },
+ "txNote": {
+  "group": "10 Trash categories",
+  "kind": "label",
+  "where": "tooltip on translated notes/titles (small globe icon)"
+ },
+ "txSetting": {
+  "group": "9 Settings",
+  "kind": "label",
+  "where": "Settings → connection card: per-phone switch for translating content"
  }
 }
