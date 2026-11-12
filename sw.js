@@ -1,7 +1,7 @@
 /* Service worker: keeps ಜಲಗಾರ usable offline.
    Language files other than en/kn are cached the first time they are used.
    Bump VERSION whenever you change index.html / app.js / config.js. */
-const VERSION="v15";
+const VERSION="v19";
 const SHELL = "plog-shell-" + VERSION;
 const MEDIA = "plog-media";
 const FILES = ["./", "./index.html", "./app.js", "./config.js", "./manifest.webmanifest",

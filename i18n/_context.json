@@ -735,9 +735,9 @@
   "where": "Pop-up when a backup file can't be read"
  },
  "promoteHint": {
-  "group": "9 Settings",
-  "kind": "message",
-  "where": "Hint above suggested categories from 'other items'"
+  "group": "10 Trash categories",
+  "kind": "label",
+  "where": "Settings: explanation under that heading"
  },
  "syncNow": {
   "group": "9 Settings",
@@ -1128,5 +1128,80 @@
   "group": "12 Library",
   "kind": "label",
   "where": "field label"
+ },
+ "jList": {
+  "group": "13 Photos & viewer",
+  "kind": "label",
+  "where": "journal: switch to the list of days"
+ },
+ "jPhotos": {
+  "group": "13 Photos & viewer",
+  "kind": "label",
+  "where": "journal: switch to the photo grid"
+ },
+ "noPhotos": {
+  "group": "13 Photos & viewer",
+  "kind": "label",
+  "where": "photo grid when empty"
+ },
+ "openDay": {
+  "group": "13 Photos & viewer",
+  "kind": "label",
+  "where": "button in the full-screen viewer"
+ },
+ "close": {
+  "group": "13 Photos & viewer",
+  "kind": "label",
+  "where": "✕ in the full-screen viewer (screen readers)"
+ },
+ "libSave": {
+  "group": "12 Library",
+  "kind": "button",
+  "where": "save button when naming a topic or editing a file's details"
+ },
+ "libSaved": {
+  "group": "12 Library",
+  "kind": "message",
+  "where": "after saving a file's details"
+ },
+ "setSaved": {
+  "group": "9 Settings",
+  "kind": "message",
+  "where": "after saving settings or languages"
+ },
+ "mtNote": {
+  "group": "10 Trash categories",
+  "kind": "label",
+  "where": "tooltip/hint for machine-translated names (marked AI)"
+ },
+ "renameCat": {
+  "group": "10 Trash categories",
+  "kind": "label",
+  "where": "sheet title when renaming a category"
+ },
+ "promoteT": {
+  "group": "10 Trash categories",
+  "kind": "label",
+  "where": "Settings: heading for repeated one-off items"
+ },
+ "promoteCount": {
+  "group": "10 Trash categories",
+  "kind": "label",
+  "where": "Settings: {d} = days, {n} = item count"
+ },
+ "promoteBtn": {
+  "group": "10 Trash categories",
+  "kind": "label",
+  "where": "button that turns a repeated item into a category"
+ },
+ "promoteSheetHint": {
+  "group": "10 Trash categories",
+  "kind": "label",
+  "where": "sheet text; {d} = days, {n} = items"
+ },
+ "promoteDone": {
+  "group": "10 Trash categories",
+  "kind": "label",
+  "where": "message after making the category; {d} = days"
  }
 }

@@ -83,13 +83,30 @@ function minutes(e){ if(!e.start||!e.end) return null; const [a,b]=e.start.split
 function fmtDur(m){ if(m==null) return ""; const h=Math.floor(m/60), mm=m%60; return ((h? h+" "+t("hr")+" ":"")+(mm? mm+" "+t("min"):"")).trim(); }
 function items(){ return (S.config && Array.isArray(S.config.items) && S.config.items.length) ? S.config.items : DEFAULT_ITEMS; }
 /* a category's name in the current language: its own names (custom categories), else the label file */
+/* One-off items typed on a day keep {name (as typed), src (language typed in), names {lang:text}, mt {lang:true} (machine-translated)}. */
+/* the volunteer typed or corrected a one-off item's name in the current language */
+function setExtraName(x,v){
+  if(v===extraName(x)) return;
+  const L=S.lang; x.names=x.names||{}; x.mt=x.mt||{};
+  if(!x.name || !x.src || x.src===L){
+    // the original text changed: the old translations no longer fit
+    for(const c of Object.keys(x.names)) if(c!==L && x.mt[c]) delete x.names[c];
+    x.mt={}; x.name=v; x.src=L;
+  } else delete x.mt[L];
+  x.names[L]=v;
+}
+function extraName(x,lang){ lang=lang||S.lang; return (x.names&&x.names[lang]) || x.name || ""; }
+function extraMT(x,lang){ lang=lang||S.lang; return !!(x.mt&&x.mt[lang]&&x.names&&x.names[lang]); }
+function extraKey(x){ return String((x.names&&x.names.en)||x.name||"").trim().toLowerCase(); }
+function itemMT(it,lang){ lang=lang||S.lang; return !!(it.mt&&it.mt[lang]); }
+function mtMark(on){ return on? '<sup class="mt" title="'+esc(t("mtNote"))+'">AI</sup>' : ""; }
 function itemName(it,lang){
   lang=lang||S.lang;
   const own=(it.names&&it.names[lang]) || (lang==="kn"&&it.kn) || (lang==="en"&&it.en);
   if(own) return own;
   if(lang===S.lang){ const l=tOr("item."+it.key); if(l) return l; }
   else { const f=(lang==="en"?I18N.en:I18N.files[lang])||{}; if(f["item."+it.key]) return f["item."+it.key]; }
-  return (it.names&&it.names.en) || it.en || (I18N.en["item."+it.key]) || it.kn || it.key;
+  return (it.names&&it.names.en) || it.en || (I18N.en["item."+it.key]) || it.kn || (it.names&&Object.values(it.names).find(Boolean)) || it.key;
 }
 function itemByKey(k){ return items().find(i=>i.key===k); }
 function entries(){ return Object.values(S.map); }
@@ -212,6 +229,125 @@ async function localDelete(id){
 async function localConfig(c){ S.config=c; queue({t:"config"}); await persist(); kickSync(); }
 function dropBlobUrl(cid){ if(S.blobUrls[cid]){ URL.revokeObjectURL(S.blobUrls[cid]); delete S.blobUrls[cid]; } }
 
+/* ================================================================ translation of item names */
+/* Names typed in one language (one-off items on a day, new categories) are translated into the
+   app's other languages by Claude, through the script. Machine translations are marked, and any
+   correction made in the app replaces them. Without an API key nothing happens: names show as typed. */
+function missingNames(){
+  const langs=enabledLangs(), want=[];
+  for(const e of entries()) (e.extras||[]).forEach((x,i)=>{ if(!(x.name||"").trim()) return; const has=x.names||{};
+    if(langs.some(c=>!has[c] && !(c===(x.src||"")))) want.push({id:"e:"+e.id+":"+i,text:x.name,kind:"extra",e,x}); });
+  for(const it of ((S.config&&S.config.items)||[])){ if(it.i18n||!it.names) continue;
+    const given=Object.keys(it.names).filter(c=>(it.names[c]||"").trim()); if(!given.length) continue;
+    if(langs.some(c=>!(it.names[c]||"").trim())){ const src=it.src&&it.names[it.src]? it.src : given[0];
+      want.push({id:"i:"+it.key,text:it.names[src],kind:"item",it,src}); } }
+  return want;
+}
+async function translateMissing(){
+  if(!S.meta.aiEnabled) return;
+  if(S.meta.trFailAt && Date.now()-S.meta.trFailAt<10*60*1000) return;   // after a failure, wait 10 minutes
+  S.trTried=S.trTried||new Set();
+  const want=missingNames().filter(w=>!S.trTried.has(w.id+"|"+w.text)); if(!want.length) return;
+  want.slice(0,40).forEach(w=>S.trTried.add(w.id+"|"+w.text));   // once per session, even if a language comes back empty
+  const langs=enabledLangs().map(c=>({code:c,name:langInfo(c).english||c}));
+  let r;
+  try{ r=await api("translate",{texts:want.slice(0,40).map(w=>({id:w.id.replace(/[^A-Za-z0-9_.:-]/g,"_").slice(0,80),text:w.text})),langs},90000); }
+  catch(err){ if(err&&err.code==="network") throw err; S.meta.trFailAt=Date.now(); await persist(); return; }
+  S.meta.trFailAt=0;
+  const byId={}; for(const it of ((r&&r.result&&r.result.items)||[])) byId[it.id]=it;
+  const touched=new Set(); let cfg=false;
+  for(const w of want.slice(0,40)){
+    const got=byId[w.id.replace(/[^A-Za-z0-9_.:-]/g,"_").slice(0,80)]; if(!got) continue;
+    if(w.kind==="extra"){
+      const e=S.map[w.e.id]; if(!e||!(e.extras||[]).includes(w.x)||w.x.name!==w.text) continue;   // changed meanwhile
+      const x=w.x; x.names=x.names||{}; x.mt=x.mt||{};
+      if(!x.src) x.src= got.source && langs.some(l=>l.code===got.source)? got.source : S.lang;
+      if(!x.names[x.src]) x.names[x.src]=x.name;
+      for(const c in got.names) if(!x.names[c]){ x.names[c]=got.names[c]; if(c!==x.src) x.mt[c]=true; }
+      touched.add(e.id);
+    } else {
+      const it=w.it; if(!S.config||!(S.config.items||[]).includes(it)) continue;
+      it.mt=it.mt||{}; it.src=it.src||w.src;
+      for(const c in got.names) if(!(it.names[c]||"").trim()){ it.names[c]=got.names[c]; it.mt[c]=true; }
+      it.en=itemName(it,"en"); it.kn=itemName(it,"kn"); cfg=true;
+    }
+  }
+  for(const id of touched){ S.map[id].updatedAt=new Date().toISOString(); queue({t:"save",id}); }
+  if(cfg) queue({t:"config"});
+  if(touched.size||cfg){ await persist(); refreshPassive(); }
+}
+
+/* a category from names given in some languages; with Claude available the gaps are translated
+   at the next sync, otherwise the first name given fills them */
+function newCategory(names,langs,haz){
+  const nm={}; let src="";
+  for(const c of langs){ const v=(names[c]||"").trim(); if(v){ nm[c]=v; if(!src) src= c===S.lang? c : src; } }
+  const first=Object.values(nm)[0]; if(!src) src=Object.keys(nm)[0];
+  if(!S.meta.aiEnabled) for(const c of langs) if(!nm[c]) nm[c]=first;
+  const key=((nm.en||first).toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"")||"item")+"_"+uid(3);
+  return {key,names:nm,src,en:nm.en||first,kn:nm.kn||first,hazard:!!haz};
+}
+/* edit a category's name in each language (also how a machine translation gets corrected) */
+function renameItem(it,langs,done){
+  const body=langs.map(c=>'<label class="f">'+esc(langInfo(c).name)+(itemMT(it,c)?' '+mtMark(true):"")+'</label><input type="text" data-rn="'+esc(c)+'" lang="'+esc(c)+'" value="'+esc(itemName(it,c))+'">').join("")+
+    (it.mt&&Object.keys(it.mt).length?'<p class="hint" style="margin-top:8px">'+esc(t("mtNote"))+'</p>':"")+
+    '<div class="row" style="margin-top:14px"><button type="button" class="btn ghost" data-x>'+esc(t("cancel"))+'</button><button type="button" class="btn" data-ok>'+esc(t("libSave"))+'</button></div>';
+  openSheet(t("renameCat"),body,(el,close)=>{
+    el.querySelector("[data-x]").onclick=close;
+    el.querySelector("[data-ok]").onclick=()=>{
+      it.names=it.names||{}; it.mt=it.mt||{};
+      el.querySelectorAll("[data-rn]").forEach(i=>{ const c=i.dataset.rn, v=i.value.trim(); if(v && v!==itemName(it,c)){ it.names[c]=v; delete it.mt[c]; } });
+      it.en=itemName(it,"en"); it.kn=itemName(it,"kn"); close(); done(); };
+  });
+}
+/* one-off items that keep coming back, grouped across languages (by their English name when known) */
+function repeatedExtras(cats){
+  const known=new Set(); for(const it of cats) for(const c of Object.keys(I18N.files).concat(["en","kn"])) known.add(String(itemName(it,c)).trim().toLowerCase());
+  const g={};
+  for(const e of entries()) for(const x of (e.extras||[])){
+    if(!(x.name||"").trim()) continue;
+    const names=Object.assign({},x.names||{}); if(x.src&&!names[x.src]) names[x.src]=x.name;
+    const keys=[...new Set(Object.values(names).concat([x.name]).map(v=>String(v).trim().toLowerCase()).filter(Boolean))];
+    if(keys.some(v=>known.has(v))) continue;
+    // the same thing may be spelt in different languages on different days: any shared name joins the groups
+    let r=null; for(const k of keys) if(g[k]){ const o=g[k]; if(r&&o!==r){ for(const d of o.days) r.days.add(d); r.total+=o.total; r.x.push(...o.x); for(const c in o.names) if(!r.names[c]){ r.names[c]=o.names[c]; r.mt[c]=o.mt[c]; } for(const kk in g) if(g[kk]===o) g[kk]=r; } else r=o; }
+    if(!r) r={days:new Set(),total:0,names:{},mt:{},x:[]};
+    for(const k of keys) g[k]=r;
+    r.days.add(e.id); r.total+=num(x.count); r.x.push({e,x});
+    for(const c in names) if(!r.names[c]||(r.mt[c]&&!(x.mt||{})[c])){ r.names[c]=names[c]; r.mt[c]=!!(x.mt||{})[c]; }
+  }
+  return [...new Set(Object.values(g))].filter(r=>r.days.size>=2).map(r=>Object.assign(r,{label:r.names[S.lang]||r.x[0].x.name})).sort((a,b)=>b.days.size-a.days.size||b.total-a.total).slice(0,10);
+}
+/* make a category of a repeated one-off item and move the past days' counts into it */
+function promoteExtras(g,sDraft,configOut){
+  if(!g) return;
+  const langs=sDraft.languages;
+  const body='<p class="hint" style="margin-top:0">'+esc(t("promoteSheetHint").replace("{d}",fmt(g.days.size,0)).replace("{n}",fmt(g.total,0)))+'</p>'+
+    langs.map(c=>'<label class="f">'+esc(langInfo(c).name)+(g.mt[c]?' '+mtMark(true):"")+'</label><input type="text" data-pn="'+esc(c)+'" lang="'+esc(c)+'" value="'+esc(g.names[c]||"")+'">').join("")+
+    '<label class="small" style="display:block;margin-top:10px"><input type="checkbox" id="pn_haz"> '+esc(t("hazard"))+'</label>'+
+    '<div class="row" style="margin-top:14px"><button type="button" class="btn ghost" data-x>'+esc(t("cancel"))+'</button><button type="button" class="btn" data-ok>'+esc(t("promoteBtn"))+'</button></div>';
+  openSheet(t("promoteT"),body,(el,close)=>{
+    el.querySelector("[data-x]").onclick=close;
+    el.querySelector("[data-ok]").onclick=async()=>{
+      const names={}; el.querySelectorAll("[data-pn]").forEach(i=>{ names[i.dataset.pn]=i.value; });
+      if(!Object.values(names).some(v=>v.trim())){ toast(t("libNeedName")); return; }
+      const it=newCategory(names,langs,el.querySelector("#pn_haz").checked);
+      it.mt={}; for(const c in it.names) if(g.mt[c] && it.names[c]===g.names[c]) it.mt[c]=true;   // untouched machine translations stay marked
+      sDraft.items.push(it);
+      await localConfig(configOut());
+      // move the counts: each day's one-off entries become the new category
+      const moved=new Set();
+      for(const {e,x} of g.x){ const cur=S.map[e.id]; if(!cur) continue; const i=(cur.extras||[]).indexOf(x); if(i<0) continue;
+        cur.counts=cur.counts||{}; cur.counts[it.key]=num(cur.counts[it.key])+num(x.count); cur.extras.splice(i,1); moved.add(e.id); }
+      // pickups that took "other items" from those days also took this category
+      for(const pk of pickups()) if(Array.isArray(pk.keys)&&pk.keys.includes("_other")&&(pk.covers||[]).some(id=>moved.has(id))&&!pk.keys.includes(it.key)){ pk.keys.push(it.key); moved.add(pk.id); }
+      for(const id of moved){ S.map[id].updatedAt=new Date().toISOString(); queue({t:"save",id}); }
+      await persist(); kickSync(); settingsDirty=false; close();
+      toast(t("promoteDone").replace("{d}",fmt(g.days.size,0))); renderSettings();
+    };
+  });
+}
+
 /* ================================================================ sync */
 let syncing=false, retryT=null, wakeLock=null;
 const CHUNK_DIRECT=2*1024*1024, CHUNK_PROXY=4*1024*1024;   // multiples of 256 KiB, as Drive requires
@@ -231,6 +367,7 @@ async function sync(){
   if(navigator.onLine===false){ setSync("offline"); return; }
   syncing=true; S.waitingWifi=false; setSync("syncing");
   try{
+    await translateMissing();
     for(const op of S.outbox.slice()){
       if(!S.outbox.includes(op)) continue;            // replaced meanwhile (e.g. the day was deleted)
       let done=true;
@@ -515,7 +652,7 @@ function mediaFull(m){
     return id? '<iframe src="https://drive.google.com/file/d/'+esc(encodeURIComponent(id))+'/preview" allow="autoplay; fullscreen" allowfullscreen loading="lazy"></iframe>' : "";
   }
   const src=photoSrc(m); if(!src) return "";
-  return '<a href="'+esc(photoLink(m))+'" target="_blank" rel="noopener"><img src="'+esc(src)+'" loading="lazy" alt=""></a>';
+  return '<img src="'+esc(src)+'" loading="lazy" alt="">';
 }
 async function shrinkImage(file){
   const bmp = await createImageBitmap(file);
@@ -524,6 +661,105 @@ async function shrinkImage(file){
   c.getContext("2d").drawImage(bmp,0,0,c.width,c.height);
   if(bmp.close) bmp.close();
   return await new Promise((r,j)=>c.toBlob(b=>b?r(b):j(new Error("toBlob")),"image/jpeg",0.8));
+}
+
+/* ================================================================ media viewer + photos view */
+/* the media of a day that can actually be shown (local copy or uploaded) */
+function dayMedia(e){ return (e.media||[]).filter(m=> m.kind==="video" ? !!(S.blobUrls[m.cid]||driveId(m)) : !!photoSrc(m)); }
+function dayTitle(e,nums){
+  const d=fmtDate(e.date,{weekday:"short",day:"numeric",month:"short",year:"numeric"});
+  return e.type==="pickup"? "🚛 "+t("pkShort")+" · "+d : e.type==="rest"? t("restLabel")+" · "+d : t("day")+" "+fmt(nums[e.id],0)+" · "+d;
+}
+function journalSwitch(){
+  const m=S.jmode==="photos";
+  return '<div class="seg" role="tablist"><button type="button" data-jmode="list" class="'+(m?"":"on")+'">'+esc(t("jList"))+'</button><button type="button" data-jmode="photos" class="'+(m?"on":"")+'">'+esc(t("jPhotos"))+'</button></div>';
+}
+function bindJournalSwitch(){ $$("[data-jmode]").forEach(b=>b.addEventListener("click",()=>{ if(S.jmode===b.dataset.jmode) return; S.jmode=b.dataset.jmode; renderJournal(); window.scrollTo(0,0); })); }
+function galleryHtml(list,nums){
+  let h="", n=0, lastMonth="";
+  for(const e of list){
+    const ms=dayMedia(e); if(!ms.length) continue;
+    const mo=e.date.slice(0,7);
+    if(mo!==lastMonth){ lastMonth=mo; h+='<div class="monthhd">'+esc(fmtDate(mo+"-01",{month:"long",year:"numeric"}))+'</div>'; }
+    h+='<div class="gday"><button type="button" class="gdayhd" data-gday="'+esc(e.id)+'"><span>'+esc(dayTitle(e,nums))+'</span><span class="muted">'+fmt(ms.length,0)+' ›</span></button><div class="ggrid">'+
+      ms.map(m=>'<button type="button" class="gtile" data-gi="'+(n++)+'">'+mediaTile(m)+'</button>').join("")+'</div></div>';
+  }
+  return h || '<div class="empty">'+esc(t("noPhotos"))+'</div>';
+}
+function bindGallery(list,nums){
+  const all=[]; for(const e of list) for(const m of dayMedia(e)) all.push({m,e});
+  $$("[data-gi]").forEach(b=>b.addEventListener("click",()=>openViewer(all,+b.dataset.gi,nums,true)));
+  $$("[data-gday]").forEach(b=>b.addEventListener("click",()=>goToDay(b.dataset.gday)));
+}
+function goToDay(id){ S.jmode="list"; S.openId=id; S.scrollTo=id; if(currentView()!=="journal") location.hash="journal"; else renderJournal(); }
+
+/* full-screen viewer: swipe between items, pinch or double-tap to zoom photos */
+function openViewer(items,start,nums,showDay){
+  if(!items.length) return;
+  const v=$("#viewer");
+  v.innerHTML='<div class="vtop"><span class="vcount"></span><span class="vcap"></span><button type="button" class="vx" aria-label="'+esc(t("close"))+'">✕</button></div>'+
+    '<div class="vtrack">'+items.map(({m})=>'<div class="vslide">'+viewerSlide(m)+'</div>').join("")+'</div>'+
+    '<button type="button" class="vnav prev" aria-label="‹">‹</button><button type="button" class="vnav next" aria-label="›">›</button>'+
+    (showDay?'<div class="vbot"><button type="button" class="btn ghost vday">'+esc(t("openDay"))+'</button></div>':"");
+  v.style.display="block"; document.body.classList.add("noscroll");
+  const track=v.querySelector(".vtrack"), slides=[...track.children];
+  let cur=-1;
+  const show=i=>{
+    i=Math.max(0,Math.min(items.length-1,i));
+    if(i!==cur){ slides.forEach((sl,j)=>{ if(j!==i){ const vd=sl.querySelector("video"); if(vd) vd.pause(); resetZoom(sl); } });
+      // load iframes lazily: only the visible one and its neighbours
+      slides.forEach((sl,j)=>{ const f=sl.querySelector("iframe[data-src]"); if(f&&Math.abs(j-i)<=1&&!f.src) f.src=f.dataset.src; }); }
+    cur=i;
+    v.querySelector(".vcount").textContent=fmt(i+1,0)+" / "+fmt(items.length,0);
+    v.querySelector(".vcap").textContent=dayTitle(items[i].e,nums);
+    v.querySelector(".prev").style.visibility=i>0?"visible":"hidden";
+    v.querySelector(".next").style.visibility=i<items.length-1?"visible":"hidden";
+  };
+  const go=i=>{ track.scrollTo({left:Math.max(0,Math.min(items.length-1,i))*track.clientWidth,behavior:"smooth"}); };
+  requestAnimationFrame(()=>{ track.scrollLeft=start*track.clientWidth; show(start); });
+  let st; track.addEventListener("scroll",()=>{ clearTimeout(st); st=setTimeout(()=>show(Math.round(track.scrollLeft/track.clientWidth)),60); });
+  const close=()=>{ v.querySelectorAll("video").forEach(x=>x.pause()); v.style.display="none"; v.innerHTML=""; document.body.classList.remove("noscroll"); document.removeEventListener("keydown",key); window.removeEventListener("popstate",pop); };
+  const key=ev=>{ if(ev.key==="Escape") history.back(); else if(ev.key==="ArrowRight") go(cur+1); else if(ev.key==="ArrowLeft") go(cur-1); };
+  const pop=()=>close();
+  document.addEventListener("keydown",key);
+  history.pushState({viewer:1},"",location.href); window.addEventListener("popstate",pop);   // the phone's Back button closes the viewer
+  v.querySelector(".vx").onclick=()=>history.back();
+  v.querySelector(".prev").onclick=()=>go(cur-1); v.querySelector(".next").onclick=()=>go(cur+1);
+  const vd=v.querySelector(".vday"); if(vd) vd.onclick=()=>{ const id=items[cur].e.id; history.back(); setTimeout(()=>goToDay(id),30); };
+  slides.forEach(sl=>{ const img=sl.querySelector("img.vimg"); if(img) zoomable(img,track); });
+}
+function viewerSlide(m){
+  const id=driveId(m);
+  if(m.kind==="video"){
+    if(S.blobUrls[m.cid]) return '<video src="'+esc(S.blobUrls[m.cid])+'" controls playsinline preload="metadata"></video>';
+    return '<iframe data-src="https://drive.google.com/file/d/'+esc(encodeURIComponent(id))+'/preview" allow="autoplay; fullscreen" allowfullscreen></iframe>';
+  }
+  const src= S.blobUrls[m.cid] || "https://drive.google.com/thumbnail?id="+encodeURIComponent(id)+"&sz=w2000";
+  return '<img class="vimg" src="'+esc(src)+'" alt="" draggable="false">';
+}
+function resetZoom(sl){ const img=sl.querySelector("img.vimg"); if(img&&img._z){ img._z.reset(); } }
+function zoomable(img,track){
+  let sc=1, tx=0, ty=0; const pts=new Map(); let base=null, lastTap=0;
+  const apply=()=>{ img.style.transform="translate("+tx+"px,"+ty+"px) scale("+sc+")"; track.classList.toggle("locked",sc>1.01); img.style.touchAction=sc>1.01?"none":"pan-x"; };
+  const clamp=()=>{ const r=img.parentElement.getBoundingClientRect(); const mx=r.width*(sc-1)/2, my=r.height*(sc-1)/2; tx=Math.max(-mx,Math.min(mx,tx)); ty=Math.max(-my,Math.min(my,ty)); };
+  img._z={reset:()=>{ sc=1; tx=0; ty=0; apply(); }};
+  img.addEventListener("pointerdown",ev=>{
+    pts.set(ev.pointerId,{x:ev.clientX,y:ev.clientY});
+    if(pts.size===1){ const now=Date.now(); if(now-lastTap<300){ if(sc>1.01){ sc=1; tx=0; ty=0; } else { sc=2.5; const r=img.getBoundingClientRect(); tx=(r.left+r.width/2-ev.clientX)*1.5; ty=(r.top+r.height/2-ev.clientY)*1.5; clamp(); } apply(); lastTap=0; return; } lastTap=now; }
+    if(pts.size===2||sc>1.01){ try{ img.setPointerCapture(ev.pointerId); }catch(e){} }
+    base=snap();
+  });
+  const snap=()=>{ const a=[...pts.values()]; return {sc,tx,ty, d: a.length>1? Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y):0, cx:a.reduce((s,p)=>s+p.x,0)/a.length, cy:a.reduce((s,p)=>s+p.y,0)/a.length, n:a.length}; };
+  img.addEventListener("pointermove",ev=>{
+    if(!pts.has(ev.pointerId)) return; pts.set(ev.pointerId,{x:ev.clientX,y:ev.clientY});
+    const now=snap(); if(!base||now.n!==base.n){ base=now; return; }
+    if(now.n===2&&base.d>0){ sc=Math.max(1,Math.min(5,base.sc*now.d/base.d)); tx=base.tx+(now.cx-base.cx); ty=base.ty+(now.cy-base.cy); clamp(); apply(); ev.preventDefault(); }
+    else if(now.n===1&&sc>1.01){ tx=base.tx+(now.cx-base.cx); ty=base.ty+(now.cy-base.cy); clamp(); apply(); ev.preventDefault(); }
+  });
+  const up=ev=>{ pts.delete(ev.pointerId); base=snap(); if(sc<1.05){ sc=1; tx=0; ty=0; apply(); } };
+  img.addEventListener("pointerup",up); img.addEventListener("pointercancel",up);
+  img.addEventListener("wheel",ev=>{ ev.preventDefault(); sc=Math.max(1,Math.min(5,sc*(ev.deltaY<0?1.15:1/1.15))); if(sc<1.05){ sc=1; tx=0; ty=0; } clamp(); apply(); },{passive:false});
+  apply();
 }
 
 /* ================================================================ journal */
@@ -538,7 +774,8 @@ function renderJournal(){
   const tot=plog.reduce((s,e)=>s+entryTotal(e),0);
   const col=collection();
   const wDays=Object.values(col).filter(r=>r.waitingCount>0), wItems=wDays.reduce((s,r)=>s+r.waitingCount,0);
-  let h='';
+  let h=journalSwitch();
+  if(S.jmode==="photos"){ $("#view").innerHTML=h+galleryHtml(list,nums); bindJournalSwitch(); bindGallery(list,nums); return; }
   if(wItems>0) h+='<div class="card pkbanner"><div>🚛 '+esc(t("pkBanner").replace("{n}",fmt(wItems,0)).replace("{d}",fmt(wDays.length,0)))+'</div><button type="button" class="btn ghost" id="pk_new">'+esc(t("pkRecord"))+'</button></div>';
   h+='<div class="kpis"><div class="kpi"><div class="v">'+fmt(plog.length,0)+'</div><div class="l">'+esc(t("kOutings"))+'</div></div><div class="kpi"><div class="v">'+fmt(tot,0)+'</div><div class="l">'+esc(t("kItems"))+' · '+esc(t("allTime"))+'</div></div></div>';
   let lastMonth="";
@@ -548,6 +785,10 @@ function renderJournal(){
     h+=entryCard(e,nums[e.id],col);
   }
   $("#view").innerHTML=h;
+  bindJournalSwitch();
+  $$("[data-view]").forEach(b=>b.addEventListener("click",ev=>{ ev.stopPropagation(); const e=S.map[b.dataset.view]; if(!e) return;
+    openViewer(dayMedia(e).map(m=>({m,e})), +b.dataset.vi||0, nums, false); }));
+  if(S.scrollTo){ const el=document.querySelector('.entry[data-id="'+CSS.escape(S.scrollTo)+'"]'); S.scrollTo=null; if(el) el.scrollIntoView({block:"start"}); }
   $$("[data-libfile]").forEach(b=>b.addEventListener("click",()=>{ const f=S.lib.files[b.dataset.libfile]; if(!f) return; S.libAt=f.topic||""; S.libQ=""; location.hash="library"; setTimeout(()=>openFile(f.id),50); }));
   const pn=$("#pk_new"); if(pn) pn.addEventListener("click",()=>{ S.editing=null; S.draft=blankEntry(); S.draft.type="pickup"; location.hash="add"; });
   $$(".entry").forEach(el=>el.addEventListener("click",ev=>{
@@ -579,11 +820,11 @@ function entryCard(e,n,col){
   const status= !cs||cs.status==="empty" ? "" : cs.status==="all" ? '<span class="pkst done">✓ '+esc(t("stDone"))+' · '+esc(fmtDate(cs.last.date,{day:"numeric",month:"short"}))+(agencyLabel(cs.last)?' · '+esc(agencyLabel(cs.last)):"")+'</span>'
     : cs.status==="part" ? '<span class="pkst part">◐ '+esc(t("stPart"))+' · '+fmt(cs.waitingCount,0)+' '+esc(t("pcs"))+'</span>' : '<span class="pkst wait">🕓 '+esc(t("stWaiting"))+'</span>';
   const chips=[];
-  for(const it of items()){ const c=num((e.counts||{})[it.key]); if(c) chips.push('<span class="chip static">'+esc(itemName(it))+' <b>'+fmt(c,0)+'</b></span>'); }
+  for(const it of items()){ const c=num((e.counts||{})[it.key]); if(c) chips.push('<span class="chip static">'+esc(itemName(it))+mtMark(itemMT(it))+' <b>'+fmt(c,0)+'</b></span>'); }
   for(const k in (e.counts||{})){ if(!itemByKey(k) && num(e.counts[k])) chips.push('<span class="chip static">'+esc(k)+' <b>'+fmt(num(e.counts[k]),0)+'</b></span>'); }
-  for(const x of (e.extras||[])){ if(x.name) chips.push('<span class="chip static">'+esc(x.name)+' <b>'+fmt(num(x.count),0)+'</b></span>'); }
+  for(const x of (e.extras||[])){ if(x.name) chips.push('<span class="chip static">'+esc(extraName(x))+mtMark(extraMT(x))+' <b>'+fmt(num(x.count),0)+'</b></span>'); }
   const ppl=(e.people||[]).length? '<div class="small muted" style="margin-top:6px">'+esc(e.people.join(", "))+(num(e.others)?" + "+fmt(num(e.others),0):"")+'</div>':"";
-  const tiles=(e.media||[]).map(m=>open?mediaFull(m):mediaTile(m)).filter(Boolean);
+  const tiles=dayMedia(e).map((m,i)=>{ const h=open?mediaFull(m):mediaTile(m); return !h? "" : m.kind==="video"&&open? h : '<button type="button" class="mtile" data-view="'+esc(e.id)+'" data-vi="'+i+'">'+h+'</button>'; }).filter(Boolean);
   const ph=tiles.length? '<div class="thumbs">'+tiles.join("")+'</div>':"";
   const vids=(e.videos||[]).map(v=>ytId(v.url)).filter(Boolean);
   const vh=vids.length? '<div class="vidrow">'+vids.map(id=>'<a href="https://youtu.be/'+esc(id)+'" target="_blank" rel="noopener"><img src="'+esc(ytThumb(id))+'" loading="lazy" alt=""></a>').join("")+'</div>':"";
@@ -604,7 +845,7 @@ function pickupCard(p,col,open,pend){
   if(num(p.weightKg)) meta.push("⚖️ "+fmt(num(p.weightKg))+" kg");
   const keys=(p.keys&&p.keys.length)? '<div class="chips">'+p.keys.map(k=>'<span class="chip static">'+esc(k==="_other"?t("pkOther"):itemName(itemByKey(k)||{key:k}))+'</span>').join("")+'</div>' : "";
   const days=open? '<div class="small muted" style="margin-top:6px">'+esc(t("pkCovers"))+': '+(p.covers||[]).map(id=>S.map[id]?esc(fmtDate(S.map[id].date,{day:"numeric",month:"short"})):"").filter(Boolean).join(", ")+'</div>' : "";
-  const tiles=(p.media||[]).map(m=>open?mediaFull(m):mediaTile(m)).filter(Boolean);
+  const tiles=dayMedia(p).map((m,i)=>{ const h=open?mediaFull(m):mediaTile(m); return !h? "" : m.kind==="video"&&open? h : '<button type="button" class="mtile" data-view="'+esc(p.id)+'" data-vi="'+i+'">'+h+'</button>'; }).filter(Boolean);
   return '<div class="card entry pickup'+(open?" open":"")+'" data-id="'+esc(p.id)+'"><div class="hd"><span class="dayno pk">🚛 '+esc(t("pkShort"))+'</span><span class="dt">'+esc(fmtDate(p.date))+'</span>'+pend+'<span class="tot">'+fmt(n,0)+'</span></div>'+
     (agencyLabel(p)?'<div class="pkwho">'+esc(agencyLabel(p))+'</div>':"")+
     '<div class="meta">'+meta.map(x=>"<span>"+x+"</span>").join("")+'</div>'+keys+days+
@@ -645,7 +886,7 @@ function renderForm(keepDraft){
     h+='<div class="card"><h3>'+esc(t("items"))+'</h3>'+aiBox(d);
     for(const it of items()){ if(it.hidden && !num((d.counts||{})[it.key])) continue;
       h+='<div class="item"><div class="nm">'+esc(itemName(it))+(it.hazard?'<span class="haz">⚠</span>':"")+'</div>'+stepper("c:"+it.key,(d.counts||{})[it.key])+'</div>'; }
-    h+='<div style="margin-top:12px"><label class="f">'+esc(t("extras"))+'</label><div>'+(d.extras||[]).map((x,i)=>'<div class="extra"><input type="text" data-xn="'+i+'" value="'+esc(x.name)+'" placeholder="'+esc(t("extraName"))+'"><input type="number" inputmode="numeric" min="0" data-xc="'+i+'" value="'+esc(x.count)+'"><button type="button" class="iconbtn" data-xr="'+i+'" aria-label="remove">✕</button></div>').join("")+'</div><button type="button" class="btn ghost block" id="addextra">'+esc(t("addExtra"))+'</button></div>';
+    h+='<div style="margin-top:12px"><label class="f">'+esc(t("extras"))+'</label><div>'+(d.extras||[]).map((x,i)=>'<div class="extra"><input type="text" data-xn="'+i+'" value="'+esc(extraName(x))+'" placeholder="'+esc(t("extraName"))+'"'+(extraMT(x)?' class="mtin" title="'+esc(t("mtNote"))+'"':"")+'><input type="number" inputmode="numeric" min="0" data-xc="'+i+'" value="'+esc(x.count)+'"><button type="button" class="iconbtn" data-xr="'+i+'" aria-label="remove">✕</button></div>').join("")+'</div><button type="button" class="btn ghost block" id="addextra">'+esc(t("addExtra"))+'</button></div>';
     h+='<div style="margin-top:14px"><label class="f">'+esc(t("volume"))+'</label><div class="row"><div><input type="number" inputmode="numeric" min="0" id="f_bags" value="'+esc(d.bags)+'"><div class="hint">'+esc(t("bags"))+'</div></div><div><input type="number" inputmode="decimal" step="0.1" min="0" id="f_kg" value="'+esc(d.weightKg)+'"><div class="hint">'+esc(t("weight"))+'</div></div></div></div></div>';
     h+='<div class="card"><div class="field"><label class="f" for="f_notes">'+esc(t("notes"))+'</label><textarea id="f_notes" placeholder="'+esc(t("notesPh"))+'">'+esc(d.notes)+'</textarea></div>';
     h+='<label class="f">'+esc(t("media"))+'</label><div class="photos" style="margin-bottom:8px">'+(d.media||[]).map((p,i)=>'<div class="ph">'+mediaTile(p)+(p.pending?'<span class="pend">⏳</span>':"")+'<button type="button" data-rmph="'+i+'" aria-label="remove">✕</button></div>').join("")+'</div>';
@@ -672,7 +913,7 @@ function readForm(){
     d.counts=d.counts||{};
     $$("[data-cnt]").forEach(inp=>{ const k=inp.dataset.cnt, n=Math.max(0,Math.round(num(inp.value)));
       if(k==="others") d.others=n||""; else { const key=k.slice(2); if(n) d.counts[key]=n; else delete d.counts[key]; } });
-    $$("[data-xn]").forEach(inp=>{ d.extras[+inp.dataset.xn].name=inp.value; });
+    $$("[data-xn]").forEach(inp=>setExtraName(d.extras[+inp.dataset.xn],inp.value));
     $$("[data-xc]").forEach(inp=>{ d.extras[+inp.dataset.xc].count=inp.value; });
   }
   if(v("f_notes")!==undefined) d.notes=v("f_notes");
@@ -729,7 +970,9 @@ async function saveForm(){
       dayNo: d.dayNo? Math.round(num(d.dayNo)) : null,
       start:d.start||"", end:d.end||"", distanceKm: d.distanceKm!==""? num(d.distanceKm):null,
       place:d.place||"", people:d.people||[], others: num(d.others)||0,
-      counts:d.counts||{}, extras:(d.extras||[]).filter(x=>(x.name||"").trim()).map(x=>({name:x.name.trim(),count:Math.max(0,Math.round(num(x.count)))})),
+      counts:d.counts||{}, extras:(d.extras||[]).filter(x=>(x.name||"").trim()).map(x=>{ const o={name:x.name.trim(),count:Math.max(0,Math.round(num(x.count)))};
+        if(x.src) o.src=x.src; if(x.names){ o.names={}; for(const c in x.names) if((x.names[c]||"").trim()) o.names[c]=x.names[c].trim(); }
+        if(x.mt&&Object.keys(x.mt).some(c=>x.mt[c])){ o.mt={}; for(const c in x.mt) if(x.mt[c]) o.mt[c]=true; } return o; }),
       bags: d.bags!==""? num(d.bags):null, weightKg: d.weightKg!==""? num(d.weightKg):null,
       ai: d.ai || undefined,
       media:(d.media||[]).map(p=>{ const o={cid:p.cid,kind:p.kind||"image"}; if(p.pending){ o.pending=true; if(p.mime) o.mime=p.mime; if(p.size) o.size=p.size; if(p.session){ o.session=p.session; o.offset=p.offset||0; } } else o.id=p.id; return o; }),
@@ -845,7 +1088,9 @@ function bindAi(d){
     readForm(); const r=d._ai; d.counts=d.counts||{}; d.extras=d.extras||[];
     $$("[data-aic]").forEach(cb=>{ if(cb.checked){ const c=r.counts[+cb.dataset.aic]; d.counts[c.key]=c.count; } });
     $$("[data-aio]").forEach(cb=>{ if(cb.checked){ const o=r.others[+cb.dataset.aio]; const name=S.lang!=="en"?(o.name_local||o.name_en):o.name_en;
-      const ex=d.extras.find(x=>(x.name||"").trim().toLowerCase()===name.trim().toLowerCase()); if(ex) ex.count=o.count; else d.extras.push({name,count:o.count}); } });
+      const ex=d.extras.find(x=>extraName(x).trim().toLowerCase()===name.trim().toLowerCase()); if(ex) ex.count=o.count;
+      else { const x={name,count:o.count,src:S.lang,names:{},mt:{}}; x.names[S.lang]=name;
+             if(S.lang!=="en"&&o.name_en){ x.names.en=o.name_en; x.mt.en=true; } d.extras.push(x); } } });
     d.ai={at:new Date().toISOString(),model:r.model,counts:r.counts.map(c=>({key:c.key,count:c.count,confidence:c.confidence,visible_only:c.visible_only})),
           others:r.others.map(o=>({name:o.name_en,count:o.count})),hazards:r.hazards||[],reliable:r.reliable};
     delete d._ai; toast(t("aiApplied")); renderForm(true);
@@ -968,7 +1213,7 @@ function openSheet(title,body,bind){
 function editTopic(id){
   const tp=id? S.lib.topics[id] : null, langs=enabledLangs();
   const body=langs.map(c=>'<label class="f">'+esc(langInfo(c).name)+'</label><input type="text" data-tn="'+esc(c)+'" value="'+esc(tp&&tp.names&&tp.names[c]||"")+'" lang="'+esc(c)+'">').join("")+
-    '<div class="row" style="margin-top:14px"><button type="button" class="btn ghost" data-x>'+esc(t("cancel"))+'</button><button type="button" class="btn" data-ok>'+esc(t("save"))+'</button></div>';
+    '<div class="row" style="margin-top:14px"><button type="button" class="btn ghost" data-x>'+esc(t("cancel"))+'</button><button type="button" class="btn" data-ok>'+esc(t("libSave"))+'</button></div>';
   openSheet(id?t("libRenameTopic"):t("libNewTopic"),body,(el,close)=>{
     const first=el.querySelector("[data-tn]"); if(first) first.focus();
     el.querySelector("[data-x]").onclick=close;
@@ -1034,11 +1279,11 @@ function openFile(id){
     '<label class="f" style="margin-top:10px">'+esc(t("libLinkDay"))+'</label><select id="lf_day"><option value="">—</option>'+days.map(e=>'<option value="'+esc(e.id)+'"'+(f.entryId===e.id?" selected":"")+'>'+esc(dayLabel(e))+'</option>').join("")+'</select>'+
     '<div class="row" style="margin-top:14px;flex-wrap:wrap"><button type="button" class="btn ghost" data-mv>↪ '+esc(t("libMove"))+'</button><button type="button" class="btn danger" data-del>🗑 '+esc(t("del"))+'</button>'+
     (drive?'<a class="btn ghost" href="https://drive.google.com/file/d/'+esc(encodeURIComponent(drive))+'/view" target="_blank" rel="noopener">Drive ↗</a>':"")+'</div>'+
-    '<div class="row" style="margin-top:8px"><button type="button" class="btn ghost" data-x>'+esc(t("cancel"))+'</button><button type="button" class="btn" data-ok>'+esc(t("save"))+'</button></div>';
+    '<div class="row" style="margin-top:8px"><button type="button" class="btn ghost" data-x>'+esc(t("cancel"))+'</button><button type="button" class="btn" data-ok>'+esc(t("libSave"))+'</button></div>';
   openSheet(f.title||f.name,body,(el,close)=>{
     el.querySelector("[data-x]").onclick=close;
     el.querySelector("[data-ok]").onclick=async()=>{ f.title=el.querySelector("#lf_title").value.trim(); f.note=el.querySelector("#lf_note").value.trim(); f.entryId=el.querySelector("#lf_day").value;
-      queue({t:"file",id}); await persist(); kickSync(); toast(t("saved")); close(); };
+      queue({t:"file",id}); await persist(); kickSync(); toast(t("libSaved")); close(); };
     el.querySelector("[data-mv]").onclick=()=>{ close(); moveTo(t("libMove")+": "+(f.title||f.name),new Set(),f.topic||"",async dest=>{ f.topic=dest; queue({t:"file",id}); await persist(); kickSync(); }); };
     el.querySelector("[data-del]").onclick=async()=>{ close(); if(!await confirmBox(t("libConfirmDelFile").replace("{name}",f.title||f.name),t("yes"),t("no"))) return;
       delete S.lib.files[id]; queue({t:"fileDel",id}); IDB.del("blobs",id); dropBlobUrl(id); await persist(); kickSync(); renderLibrary(); };
@@ -1164,13 +1409,13 @@ function renderSettings(){
   h+='<div class="card"><div class="field"><label class="f" for="s_title">'+esc(t("sTitle"))+'</label><input type="text" id="s_title" value="'+esc(sDraft.title)+'"></div>';
   h+='<h3>'+esc(t("sItems"))+'</h3><p class="hint" style="margin-top:-6px">'+esc(t("sItemsHint"))+'</p>';
   sDraft.items.forEach((it,i)=>{
-    h+='<div class="setitem'+(it.hidden?" hidden":"")+'"><div class="nm">'+esc(itemName(it))+(S.lang!=="en"?' <span class="muted small">· '+esc(itemName(it,"en"))+'</span>':"")+''+(it.hazard?' <span style="color:var(--warn)">⚠</span>':"")+'</div>'+
+    h+='<div class="setitem'+(it.hidden?" hidden":"")+'"><button type="button" class="nm linkish" data-ren="'+i+'">'+esc(itemName(it))+mtMark(itemMT(it))+(S.lang!=="en"?' <span class="muted small">· '+esc(itemName(it,"en"))+mtMark(itemMT(it,"en"))+'</span>':"")+''+(it.hazard?' <span style="color:var(--warn)">⚠</span>':"")+'</button>'+
       '<button type="button" class="iconbtn" data-up="'+i+'" aria-label="up"'+(i===0?" disabled":"")+'>↑</button><button type="button" class="iconbtn" data-haz="'+i+'" title="'+esc(t("hazard"))+'">⚠</button><button type="button" class="iconbtn" data-hide="'+i+'" title="'+esc(it.hidden?t("show"):t("hide"))+'">'+(it.hidden?"👁":"✕")+'</button></div>';
   });
   h+='<div style="margin-top:12px"><label class="f">'+esc(t("newItem"))+'</label><div style="display:grid;gap:8px;margin-bottom:8px">'+sDraft.languages.map(c=>'<input type="text" data-niname="'+esc(c)+'" placeholder="'+esc(t("catName").replace("{lang}",langInfo(c).name))+'">').join("")+'</div><label class="small"><input type="checkbox" id="ni_haz"> '+esc(t("hazard"))+'</label> <button type="button" class="btn ghost block" id="ni_add" style="margin-top:8px">+ '+esc(t("newItem"))+'</button></div>';
-  const ex={}; for(const e of entries()) for(const x of (e.extras||[])){ const k=(x.name||"").trim(); if(k) ex[k]=(ex[k]||0)+1; }
-  const sug=Object.entries(ex).filter(([k])=>!sDraft.items.some(it=>it.kn===k||it.en===k||Object.values(it.names||{}).includes(k))).sort((a,b)=>b[1]-a[1]).slice(0,8);
-  if(sug.length) h+='<p class="hint" style="margin-top:12px">'+esc(t("promoteHint"))+'</p><div class="chips">'+sug.map(([k,n])=>'<button type="button" class="chip static" style="border:0" data-promote="'+esc(k)+'">+ '+esc(k)+' ('+n+')</button>').join("")+'</div>';
+  const groups=repeatedExtras(sDraft.items);
+  if(groups.length) h+='<div class="promote"><h4>'+esc(t("promoteT"))+'</h4><p class="hint">'+esc(t("promoteHint"))+'</p>'+groups.map((g,i)=>
+    '<div class="setitem"><div class="nm">'+esc(g.label)+' <span class="muted small">· '+esc(t("promoteCount").replace("{d}",fmt(g.days.size,0)).replace("{n}",fmt(g.total,0)))+'</span></div><button type="button" class="btn ghost small" data-promote="'+i+'">'+esc(t("promoteBtn"))+'</button></div>').join("")+'</div>';
   h+='<button type="button" class="btn block" id="s_save" style="margin-top:14px">'+esc(t("saveSettings"))+'</button></div>';
   // languages and labels
   h+='<div class="card"><h3>'+esc(t("langsTitle"))+'</h3><p class="hint" style="margin-top:-6px">'+esc(t("langsHint"))+'</p><div class="langgrid">'+
@@ -1206,14 +1451,13 @@ function bindSettings(){
   /* a new category gets a name per offered language; the first name given fills the gaps */
   const add=(names,haz)=>{
     const vals=Object.values(names).map(v=>(v||"").trim()).filter(Boolean); if(!vals.length) return;
-    const first=vals[0]; const nm={}; for(const c of sDraft.languages) nm[c]=(names[c]||"").trim()||first;
-    const key=((nm.en||first).toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"")||"item")+"_"+uid(3);
-    sDraft.items.push({key,names:nm,en:nm.en,kn:nm.kn||nm.en,hazard:!!haz}); mark(); renderSettings(); };
+    sDraft.items.push(newCategory(names,sDraft.languages,haz)); mark(); renderSettings(); };
   $("#ni_add").addEventListener("click",()=>{ const names={}; $$("[data-niname]").forEach(i=>names[i.dataset.niname]=i.value); add(names,$("#ni_haz").checked); });
-  $$("[data-promote]").forEach(b=>b.addEventListener("click",()=>{ const names={}; names[S.lang]=b.dataset.promote; add(names,false); }));
+  $$("[data-ren]").forEach(b=>b.addEventListener("click",()=>renameItem(sDraft.items[+b.dataset.ren],sDraft.languages,()=>{ mark(); renderSettings(); })));
+  $$("[data-promote]").forEach(b=>b.addEventListener("click",()=>promoteExtras(repeatedExtras(sDraft.items)[+b.dataset.promote],sDraft,configOut)));
   const configOut=()=>({title:sDraft.title.trim(),languages:sDraft.languages,
     items:sDraft.items.map(it=>Object.assign({},it,{en:itemName(it,"en"),kn:itemName(it,"kn")}))});   // en/kn copies keep the Sheet's column titles readable
-  $("#s_save").addEventListener("click",async()=>{ await localConfig(configOut()); settingsDirty=false; toast(t("saved")); route(); });
+  $("#s_save").addEventListener("click",async()=>{ await localConfig(configOut()); settingsDirty=false; toast(t("setSaved")); route(); });
   $$("[data-lang]").forEach(cb=>cb.addEventListener("change",()=>{ const c=cb.dataset.lang;
     sDraft.languages = cb.checked ? sDraft.languages.concat(c) : sDraft.languages.filter(x=>x!==c);
     if(!sDraft.languages.includes("en")) sDraft.languages.push("en"); mark(); }));
@@ -1221,7 +1465,7 @@ function bindSettings(){
     for(const c of sDraft.languages) await loadLangFile(c);
     await localConfig(configOut()); settingsDirty=false;
     if(!enabledLangs().includes(S.lang)) await setLang(enabledLangs()[0]);
-    toast(t("saved")); route(); });
+    toast(t("setSaved")); route(); });
   $("#l_seed").addEventListener("click",async ev=>{
     const b=ev.target; b.disabled=true;
     try{

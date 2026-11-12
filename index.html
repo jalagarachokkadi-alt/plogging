@@ -129,6 +129,12 @@ table.t td.n,table.t th.n{text-align:right;font-variant-numeric:tabular-nums}
 .chartbox svg{width:100%;height:auto;display:block}
 .chartbox svg text{fill:var(--muted);font-size:11px;font-family:inherit}
 .tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font-size:.8rem;border-radius:8px;padding:6px 8px;white-space:nowrap;transform:translate(-50%,-110%);display:none}
+.mt{font-size:.6rem;font-weight:700;color:var(--accent);margin-left:2px;letter-spacing:.02em;cursor:help}
+input.mtin{border-style:dashed}
+.setitem .linkish{border:0;background:transparent;padding:4px 0;text-align:left;cursor:pointer;color:inherit;font:inherit}
+.promote{margin-top:16px;padding-top:4px;border-top:1px solid var(--line)}
+.promote h4{margin:10px 0 2px;font-size:.95rem}
+.btn.small{min-height:36px;padding:6px 10px;font-size:.85rem}
 .setitem{display:flex;gap:6px;align-items:center;padding:8px 0;border-bottom:1px dashed var(--line)}
 .setitem .nm{flex:1;min-width:0}
 .setitem.hidden .nm{opacity:.5;text-decoration:line-through}
@@ -193,6 +199,36 @@ header.top h1 .logo{width:38px;height:38px;flex:none;border-radius:10px}
 .agchip.on{background:var(--green)!important;color:#fff;border-color:var(--green)!important}
 @media (prefers-color-scheme:dark){.agchip.on{color:#10140f}}
 .kpi.wait .v{color:var(--accent)}
+.seg{display:flex;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:3px;margin:2px 0 12px}
+.seg button{flex:1;border:0;background:transparent;border-radius:9px;padding:9px 6px;font-weight:600;color:var(--muted);cursor:pointer;min-height:40px}
+.seg button.on{background:var(--green);color:#fff}
+.mtile{border:0;padding:0;background:transparent;cursor:zoom-in;flex:none;display:block;line-height:0}
+.entry.open .thumbs .mtile{width:100%}
+.gday{margin-bottom:14px}
+.gdayhd{display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;border:0;background:transparent;padding:6px 2px;font-weight:600;text-align:left;cursor:pointer;color:var(--ink)}
+.ggrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+@media (min-width:520px){.ggrid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.gtile{position:relative;border:0;padding:0;aspect-ratio:1;overflow:hidden;border-radius:6px;background:var(--line);cursor:zoom-in}
+.gtile img,.gtile video,.gtile .vt{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.gtile .vt i{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-style:normal;font-size:1.5rem;text-shadow:0 1px 4px rgba(0,0,0,.7)}
+#viewer{display:none;position:fixed;inset:0;z-index:60;background:#000;color:#fff;overscroll-behavior:contain}
+body.noscroll{overflow:hidden}
+#viewer .vtop{position:absolute;top:0;left:0;right:0;z-index:3;display:flex;align-items:center;gap:10px;padding:max(10px,env(safe-area-inset-top)) 12px 10px;background:linear-gradient(rgba(0,0,0,.65),transparent)}
+#viewer .vcount{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+#viewer .vcap{flex:1;min-width:0;font-size:.85rem;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#viewer .vx{border:0;background:rgba(255,255,255,.15);color:#fff;width:44px;height:44px;border-radius:50%;font-size:1.2rem;cursor:pointer}
+#viewer .vtrack{position:absolute;inset:0;display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none}
+#viewer .vtrack::-webkit-scrollbar{display:none}
+#viewer .vtrack.locked{overflow-x:hidden}
+#viewer .vslide{flex:0 0 100%;height:100%;scroll-snap-align:center;scroll-snap-stop:always;display:flex;align-items:center;justify-content:center;overflow:hidden}
+#viewer .vslide img{max-width:100%;max-height:100%;object-fit:contain;transform-origin:center;user-select:none;-webkit-user-select:none;touch-action:pan-x}
+#viewer .vslide video{max-width:100%;max-height:calc(100% - 140px)}
+#viewer .vslide iframe{width:100%;height:calc(100% - 140px);max-width:720px;border:0;background:#111}
+#viewer .vnav{position:absolute;top:50%;transform:translateY(-50%);z-index:3;border:0;background:rgba(255,255,255,.14);color:#fff;width:44px;height:64px;font-size:2rem;cursor:pointer;display:none}
+#viewer .prev{left:6px;border-radius:0 10px 10px 0}#viewer .next{right:6px;border-radius:10px 0 0 10px}
+@media (hover:hover){#viewer .vnav{display:block}}
+#viewer .vbot{position:absolute;bottom:0;left:0;right:0;z-index:3;display:flex;justify-content:center;padding:12px 12px max(14px,env(safe-area-inset-bottom));background:linear-gradient(transparent,rgba(0,0,0,.65))}
+#viewer .vbot .btn{background:rgba(255,255,255,.92);color:#1e1e1e;border:0}
 .libhead{position:sticky;top:0;z-index:4;background:var(--bg);padding:4px 0 8px}
 .crumbs{display:flex;flex-wrap:wrap;align-items:center;gap:2px 4px;margin-bottom:8px;font-size:.95rem}
 .crumbs button{border:0;background:transparent;padding:4px 2px;color:var(--green);font-weight:600;cursor:pointer}
@@ -250,6 +286,7 @@ nav.tabs a{font-size:.72rem}
 <div class="toast" id="toast"></div>
 <div class="modal" id="modal"><div class="box"><p id="modalmsg"></p><div class="row"><button class="btn ghost" id="modalno" type="button"></button><button class="btn" id="modalyes" type="button"></button></div></div></div>
 <div class="tip" id="tip"></div>
+<div id="viewer" role="dialog" aria-modal="true"></div>
 <div class="modal" id="sheet"><div class="box sheetbox"><h3></h3><div class="body"></div></div></div>
 <div class="modal" id="picker"><div class="box"><p></p><div class="opts" style="display:grid;gap:8px"></div></div></div>
 <script src="config.js"></script>
