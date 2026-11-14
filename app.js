@@ -145,7 +145,7 @@ async function txRun(){
     S.trc=S.trc||{}; const c=S.trc[lang]=S.trc[lang]||{};
     for(const it of ((r&&r.result&&r.result.items)||[])) c[it.id]= it.same? {same:true} : {t:it.text};
     await IDB.put("kv","trc",S.trc);
-    if(lang===S.lang && !sheetOpen() && ["journal","library"].includes(currentView())) route();
+    if(lang===S.lang && !sheetOpen() && ["journal","library","stats"].includes(currentView())) route();
   }catch(e){ /* offline or no credit: originals stay; tried again next time the app opens */ }
   if(S.txWant.size) txTimer=setTimeout(txRun,300);
 }
@@ -184,7 +184,7 @@ function collection(excludeId){
 }
 /* items a given pickup actually took (each item counted once, by the first pickup that covered it) */
 function pickupItems(p,col){ let n=0; for(const id of (p.covers||[])){ const e=S.map[id], r=col[id]; if(!e||!r) continue; for(const k in r.by) if(r.by[k]===p) n+=keyCount(e,k); } return n; }
-function agencyLabel(p){ const a={panchayat:"agPanchayat",municipal:"agMunicipal",scrap:"agScrap",other:"agOther"}[p.agency]; return [a?t(a):"",p.agencyName||""].filter(Boolean).join(" · "); }
+function agencyLabel(p,raw){ const a={panchayat:"agPanchayat",municipal:"agMunicipal",scrap:"agScrap",other:"agOther"}[p.agency]; return [a?t(a):"",p.agencyName?(raw?p.agencyName:txPlain(p.agencyName)):""].filter(Boolean).join(" · "); }
 /* entries saved before videos were supported kept pictures in "photos" */
 function norm(e){ if(e && !e.media){ e.media=(e.photos||[]).map(p=>Object.assign({kind:"image"},p)); } if(e) delete e.photos; return e; }
 function normMap(m){ for(const k in m) norm(m[k]); return m; }
@@ -456,8 +456,8 @@ async function syncEntry(id){
     if(!driveId){
       const blob=await IDB.get("blobs",m.cid);
       if(!blob){ const c=S.map[id]; c.media=c.media.filter(x=>x.cid!==m.cid); await persist(); continue; }
-      if(m.kind==="video"){
-        if(wifiBlocked()){ deferred=true; S.waitingWifi=true; continue; }
+      if(m.kind==="video"||m.kind==="audio"){
+        if(m.kind==="video" && wifiBlocked()){ deferred=true; S.waitingWifi=true; continue; }
         driveId=await uploadVideo(id,m.cid,blob);
         if(!driveId) continue;
       } else {
@@ -483,7 +483,7 @@ async function uploadVideo(id,cid,blob){
     alive:()=>!!live(),
     get:k=>{ const x=live(); return x? x[k] : undefined; },
     set:async f=>{ const x=live(); if(x) Object.assign(x,f); await persist(); },
-    start:()=>api("startVideo",{clientId:cid,date:S.map[id].date,mimeType:blob.type||(live()||{}).mime||"video/mp4",size:blob.size,origin:location.origin}),
+    start:()=>api("startVideo",{clientId:cid,date:S.map[id].date,mimeType:blob.type||(live()||{}).mime||"video/mp4",size:blob.size,origin:location.origin}),   // also voice notes
     finish:async fid=>{ await api("finishVideo",{id:fid}); return fid; } });
 }
 /* Drive's resumable protocol: the file goes up in small pieces; after an interruption Drive is
@@ -588,7 +588,7 @@ async function pull(){
     for(const k in lt) if(!lt[k]) delete lt[k]; for(const k in lf) if(!lf[k]) delete lf[k];
     S.lib={topics:lt,files:lf};
   }
-  S.meta.lastSync=new Date().toISOString(); S.meta.sheetUrl=r.sheetUrl; S.meta.folderUrl=r.folderUrl; S.meta.aiEnabled=!!r.aiEnabled; S.meta.strings=r.strings||{};
+  S.meta.lastSync=new Date().toISOString(); S.meta.sheetUrl=r.sheetUrl; S.meta.folderUrl=r.folderUrl; S.meta.aiEnabled=!!r.aiEnabled; S.meta.strings=r.strings||{}; S.meta.scriptVersion=r.version||"";
   await persist(); refreshPassive(true);
 }
 function cleanEntry(e){ const c=JSON.parse(JSON.stringify(e)); c.media=(c.media||[]).filter(m=>m.id).map(m=>({id:m.id,cid:m.cid,kind:m.kind||"image"})); delete c.photos; return c; }
@@ -690,6 +690,7 @@ function photoSrc(p){ if(S.blobUrls[p.cid]) return S.blobUrls[p.cid]; const id=d
 function photoLink(p){ const id=driveId(p); return id? "https://drive.google.com/file/d/"+encodeURIComponent(id)+"/view" : photoSrc(p); }
 /* small preview tile for a photo or video (journal and form) */
 function mediaTile(m){
+  if(m.kind==="audio") return '<span class="at">🎙<small>'+(m.dur?esc(fmtDur(m.dur)):"")+'</small></span>';
   if(m.kind==="video"){
     if(S.blobUrls[m.cid]) return '<span class="vt"><video src="'+esc(S.blobUrls[m.cid])+'#t=0.5" preload="metadata" muted playsinline></video><i>▶</i></span>';
     const id=driveId(m); if(!id) return "";
@@ -700,9 +701,12 @@ function mediaTile(m){
 /* full-size view when a day is opened */
 function mediaFull(m){
   const id=driveId(m);
+  if(m.kind==="audio"){
+    if(S.blobUrls[m.cid]) return '<div class="afull">🎙 <audio src="'+esc(S.blobUrls[m.cid])+'" controls preload="metadata"></audio></div>';
+    return id? '<iframe class="aframe" src="https://drive.google.com/file/d/'+esc(encodeURIComponent(id))+'/preview" loading="lazy"></iframe>' : "";
+  }
   if(m.kind==="video"){
-    if(S.blobUrls[m.cid]) return '<video src="'+esc(S.blobUrls[m.cid])+'" controls preload="metadata" playsinline></video>';
-    return id? '<iframe src="https://drive.google.com/file/d/'+esc(encodeURIComponent(id))+'/preview" allow="autoplay; fullscreen" allowfullscreen loading="lazy"></iframe>' : "";
+    return S.blobUrls[m.cid]||id? vplayer(S.blobUrls[m.cid],id) : "";
   }
   const src=photoSrc(m); if(!src) return "";
   return '<img src="'+esc(src)+'" loading="lazy" alt="">';
@@ -725,9 +729,141 @@ function setPkBar(n,d){
   $("#pk_new").onclick=()=>{ S.editing=null; S.draft=blankEntry(); S.draft.type="pickup"; location.hash="add"; };
 }
 
+/* ================================================================ video player */
+/* The browser's own controls put a big play button over the middle of the picture. This player
+   keeps a slim bar along the bottom (play, time, seek, sound, full screen) that fades while playing.
+   Videos only in Drive stream straight from Drive; if Drive won't hand the file over (very large
+   files), Drive's own player is used instead. */
+function vplayer(local,drive,lazy){
+  const src= local || (drive? "https://drive.google.com/uc?export=download&id="+encodeURIComponent(drive) : "");
+  const fb= drive? "https://drive.google.com/file/d/"+encodeURIComponent(drive)+"/preview" : "";
+  return '<div class="vp" data-fb="'+esc(fb)+'"><video '+(lazy?'data-src':'src')+'="'+esc(src)+(local?"#t=0.1":"")+'" playsinline preload="'+(local?"metadata":"none")+'"></video>'+
+    '<button type="button" class="vp-big" data-vp="play" aria-label="▶">▶</button>'+
+    '<div class="vp-bar"><button type="button" data-vp="play" class="vp-pp" aria-label="▶">▶</button><span class="vp-t">0:00</span>'+
+    '<input type="range" class="vp-seek" min="0" max="1000" value="0" aria-label="seek"><span class="vp-d">'+(local?"":"")+'</span>'+
+    '<button type="button" data-vp="mute" class="vp-m" aria-label="sound">🔊</button><button type="button" data-vp="fs" aria-label="full screen">⛶</button></div></div>';
+}
+(function(){
+  const box=v=>v&&v.closest&&v.closest(".vp");
+  const show=b=>{ b.classList.add("ui"); clearTimeout(b._h); const v=b.querySelector("video"); if(v&&!v.paused) b._h=setTimeout(()=>b.classList.remove("ui"),2500); };
+  const sync=b=>{ const v=b.querySelector("video"); if(!v) return; const playing=!v.paused&&!v.ended;
+    b.classList.toggle("playing",playing); b.querySelector(".vp-pp").textContent=playing?"❚❚":"▶";
+    b.querySelector(".vp-m").textContent=v.muted||v.volume===0?"🔇":"🔊";
+    const d=isFinite(v.duration)?v.duration:0; b.querySelector(".vp-t").textContent=fmtDur(v.currentTime)+(d?" / "+fmtDur(d):"");
+    if(!b._drag) b.querySelector(".vp-seek").value=d? Math.round(v.currentTime/d*1000):0; };
+  const fallback=b=>{ const fb=b.dataset.fb; if(!fb){ b.classList.add("broken"); return; }
+    b.outerHTML='<iframe src="'+esc(fb)+'" allow="autoplay; fullscreen" allowfullscreen></iframe>'; };
+  const ensure=v=>{ if(!v.getAttribute("src")&&v.dataset.src){ v.src=v.dataset.src; } };
+  document.addEventListener("click",ev=>{
+    const btn=ev.target.closest("[data-vp]"), b=box(ev.target); if(!b) return;
+    ev.stopPropagation(); const v=b.querySelector("video");
+    if(!btn){ if(ev.target.tagName==="VIDEO"){ if(b.classList.contains("ui")||v.paused){ v.paused? (ensure(v),v.play()) : v.pause(); } show(b); } return; }
+    const a=btn.dataset.vp;
+    if(a==="play"){ ensure(v); if(v.paused||v.ended) v.play().catch(()=>fallback(b)); else v.pause(); }
+    else if(a==="mute"){ v.muted=!v.muted; }
+    else if(a==="fs"){ const el=b; if(document.fullscreenElement) document.exitFullscreen(); else if(el.requestFullscreen) el.requestFullscreen().catch(()=>{}); else if(v.webkitEnterFullscreen) v.webkitEnterFullscreen(); }
+    show(b); sync(b);
+  },true);
+  for(const t of ["play","pause","ended","timeupdate","loadedmetadata","volumechange"])
+    document.addEventListener(t,ev=>{ const b=box(ev.target); if(b&&ev.target.tagName==="VIDEO"){ sync(b); if(t==="play"){ show(b); b.classList.add("started"); } if(t==="pause"||t==="ended") b.classList.add("ui"); } },true);
+  document.addEventListener("error",ev=>{ const b=box(ev.target); if(b&&ev.target.tagName==="VIDEO"&&ev.target.getAttribute("src")) fallback(b); },true);
+  document.addEventListener("input",ev=>{ if(!ev.target.classList||!ev.target.classList.contains("vp-seek")) return; const b=box(ev.target), v=b.querySelector("video");
+    b._drag=true; const d=isFinite(v.duration)?v.duration:0; if(d) v.currentTime=ev.target.value/1000*d; show(b); },true);
+  document.addEventListener("change",ev=>{ if(ev.target.classList&&ev.target.classList.contains("vp-seek")){ const b=box(ev.target); if(b) b._drag=false; } },true);
+  document.addEventListener("pointerdown",ev=>{ const b=box(ev.target); if(b) show(b); },true);
+})();
+
+/* ================================================================ version */
+/* Bump APP_VERSION together with VERSION in sw.js for every release (tools/bump.sh does both). */
+const APP_VERSION="v41", APP_DATE="2026-11-14";
+async function latestVersion(){
+  try{ const r=await fetch("sw.js?check="+Date.now(),{cache:"no-store"}); const m=/VERSION\s*=\s*"([^"]+)"/.exec(await r.text()); return m?m[1]:null; }catch(e){ return null; }
+}
+function versionCard(){
+  return '<div class="card"><h3>'+esc(t("aboutT"))+'</h3><div class="verrow"><span>'+esc(t("appVersion"))+' <b>'+esc(APP_VERSION)+'</b> · '+esc(fmtDate(APP_DATE,{day:"numeric",month:"long",year:"numeric"}))+'</span><span id="ver_state" class="muted small">'+esc(t("verChecking"))+'</span></div>'+
+    '<div class="verrow small muted"><span>'+esc(t("scriptVersion"))+' <b>'+esc(S.meta.scriptVersion||"—")+'</b></span></div></div>';
+}
+async function checkVersion(){
+  const el=$("#ver_state"); if(!el) return;
+  const v=await latestVersion(); if(!$("#ver_state")) return;
+  if(!v){ el.textContent=t("verOffline"); return; }
+  if(v===APP_VERSION){ el.innerHTML='<span style="color:var(--green)">✓ '+esc(t("verLatest"))+'</span>'; return; }
+  el.innerHTML='<button type="button" class="linkbtn" id="ver_up">'+esc(t("verUpdate").replace("{v}",v))+'</button>';
+  $("#ver_up").onclick=async()=>{ el.textContent=t("verChecking");
+    try{ const reg=await navigator.serviceWorker.getRegistration(); if(reg){ await reg.update(); } }catch(e){}
+    setTimeout(()=>location.reload(),1500); };
+}
+
+/* ================================================================ share a day */
+/* A short post in the reader's language (with the day's photos where the phone can attach them),
+   handed to the phone's share sheet: WhatsApp, Instagram, Facebook, X, … */
+function shareText(e,withNames){
+  const nums=dayNumbers(), L=[];
+  if(e.type==="pickup"){
+    L.push("🚛 "+t("pkShort")+" · "+fmtDate(e.date,{day:"numeric",month:"long",year:"numeric"}));
+    const col=collection(); L.push(t("pkBarCount").replace("{n}",fmt(pickupItems(e,col),0)).replace("{d}",fmt((e.covers||[]).length,0)));
+    if(agencyLabel(e)) L.push(agencyLabel(e));
+  } else {
+    L.push("🌿 "+t("appTitle")+" · "+t("day")+" "+fmt(nums[e.id],0)+" · "+fmtDate(e.date,{weekday:"long",day:"numeric",month:"long",year:"numeric"}));
+    if(e.place) L.push("📍 "+txPlain(e.place));
+    const parts=[]; for(const it of items()){ const c=num((e.counts||{})[it.key]); if(c) parts.push(itemName(it)+" "+fmt(c,0)); }
+    for(const x of (e.extras||[])) if(num(x.count)&&x.name) parts.push(extraName(x)+" "+fmt(num(x.count),0));
+    L.push("🗑️ "+t("shareTotal").replace("{n}",fmt(entryTotal(e),0)).replace(/[.।]\s*$/,"")+(parts.length?":":""));
+    if(parts.length) L.push(parts.map(p=>"• "+p).join("\n"));
+    const extra=[]; if(num(e.distanceKm)) extra.push(fmt(num(e.distanceKm))+" km"); const m=minutes(e); if(m) extra.push(fmt(m/60)+" h");
+    if(extra.length) L.push("🚶 "+extra.join(" · "));
+    if(withNames && (e.people||[]).length) L.push("👥 "+e.people.map(txPlain).join(", ")+(num(e.others)?" + "+fmt(num(e.others),0):""));
+    else if(peopleCount(e)) L.push("👥 "+t("sharePeople").replace("{n}",fmt(peopleCount(e),0)));
+  }
+  if((e.notes||"").trim()) L.push("“"+txPlain(e.notes)+"”");
+  L.push("#plogging #ಜಲಗಾರ");
+  return L.join("\n");
+}
+async function dayFiles(e){
+  const ms=dayMedia(e).filter(m=>m.kind==="image"||!m.kind).slice(0,6), files=[], need=[];
+  for(const m of ms){
+    try{ const b=await IDB.get("blobs",m.cid); if(b){ files.push(new File([b],(m.name||m.cid)+".jpg",{type:b.type||"image/jpeg"})); continue; } }catch(x){}
+    if(driveId(m)) need.push(driveId(m));
+  }
+  if(need.length && apiUrl() && navigator.onLine!==false){
+    try{ const r=await api("shareMedia",{ids:need},60000);
+      for(const f of (r.files||[])){ const bin=atob(f.data), u=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); files.push(new File([u],f.name||"photo.jpg",{type:f.mime||"image/jpeg"})); } }
+    catch(x){ /* offline: share the text alone */ }
+  }
+  return files;
+}
+function shareDay(id){
+  const e=S.map[id]; if(!e) return;
+  const nPhotos=dayMedia(e).filter(m=>m.kind==="image"||!m.kind).length;
+  const canFiles=!!(navigator.canShare && navigator.canShare({files:[new File(["x"],"x.jpg",{type:"image/jpeg"})]}));
+  const hasNames=(e.people||[]).length>0;
+  const body='<textarea id="sh_text" rows="9" style="font-size:.9rem"></textarea>'+
+    (hasNames?'<label class="small" style="display:flex;gap:8px;align-items:center;margin-top:8px"><input type="checkbox" id="sh_names" checked> '+esc(t("shareNames"))+'</label>':"")+
+    (nPhotos&&canFiles?'<label class="small" style="display:flex;gap:8px;align-items:center;margin-top:6px"><input type="checkbox" id="sh_ph" checked> '+esc(t("sharePhotos").replace("{n}",fmt(Math.min(6,nPhotos),0)))+'</label>':"")+
+    '<div class="row" style="margin-top:14px;flex-wrap:wrap"><button type="button" class="btn ghost" data-x>'+esc(t("cancel"))+'</button>'+
+    '<button type="button" class="btn ghost" data-copy>'+esc(t("shareCopy"))+'</button>'+
+    (navigator.share?'<button type="button" class="btn" data-go>↗ '+esc(t("share"))+'</button>':'<a class="btn" data-wa target="_blank" rel="noopener">WhatsApp</a>')+'</div>';
+  openSheet(t("share"),body,(el,close)=>{
+    const ta=el.querySelector("#sh_text"), nm=el.querySelector("#sh_names");
+    const fill=()=>{ ta.value=shareText(e,!nm||nm.checked); const wa=el.querySelector("[data-wa]"); if(wa) wa.href="https://wa.me/?text="+encodeURIComponent(ta.value); };
+    fill(); if(nm) nm.onchange=fill; ta.oninput=()=>{ const wa=el.querySelector("[data-wa]"); if(wa) wa.href="https://wa.me/?text="+encodeURIComponent(ta.value); };
+    el.querySelector("[data-x]").onclick=close;
+    el.querySelector("[data-copy]").onclick=async()=>{ try{ await navigator.clipboard.writeText(ta.value); toast(t("shareCopied")); }catch(x){ ta.select(); document.execCommand&&document.execCommand("copy"); toast(t("shareCopied")); } };
+    const go=el.querySelector("[data-go]");
+    if(go) go.onclick=async()=>{
+      go.disabled=true; const old=go.textContent; const ph=el.querySelector("#sh_ph");
+      let files=[]; if(ph&&ph.checked){ go.textContent="…"; files=await dayFiles(e); }
+      const data={text:ta.value}; if(files.length && navigator.canShare({files})) data.files=files;
+      try{ await navigator.share(data); close(); }
+      catch(err){ if(err&&err.name!=="AbortError"){ try{ await navigator.share({text:ta.value}); close(); }catch(x){} } }
+      go.disabled=false; go.textContent=old;
+    };
+  });
+}
+
 /* ================================================================ media viewer + photos view */
 /* the media of a day that can actually be shown (local copy or uploaded) */
-function dayMedia(e){ return (e.media||[]).filter(m=> m.kind==="video" ? !!(S.blobUrls[m.cid]||driveId(m)) : !!photoSrc(m)); }
+function dayMedia(e){ return (e.media||[]).filter(m=> m.kind==="video"||m.kind==="audio" ? !!(S.blobUrls[m.cid]||driveId(m)) : !!photoSrc(m)); }
 function dayTitle(e,nums){
   const d=fmtDate(e.date,{weekday:"short",day:"numeric",month:"short",year:"numeric"});
   return e.type==="pickup"? "🚛 "+t("pkShort")+" · "+d : e.type==="rest"? t("restLabel")+" · "+d : t("day")+" "+fmt(nums[e.id],0)+" · "+d;
@@ -770,7 +906,7 @@ function openViewer(items,start,nums,showDay){
     i=Math.max(0,Math.min(items.length-1,i));
     if(i!==cur){ slides.forEach((sl,j)=>{ if(j!==i){ const vd=sl.querySelector("video"); if(vd) vd.pause(); resetZoom(sl); } });
       // load iframes lazily: only the visible one and its neighbours
-      slides.forEach((sl,j)=>{ const f=sl.querySelector("iframe[data-src]"); if(f&&Math.abs(j-i)<=1&&!f.src) f.src=f.dataset.src; }); }
+      slides.forEach((sl,j)=>{ const f=sl.querySelector("iframe[data-src]"); if(f&&Math.abs(j-i)<=1&&!f.src) f.src=f.dataset.src; const vv=sl.querySelector("video[data-src]"); if(vv&&Math.abs(j-i)<=1&&!vv.getAttribute("src")){ vv.preload="metadata"; vv.src=vv.dataset.src; } }); }
     cur=i;
     v.querySelector(".vcount").textContent=fmt(i+1,0)+" / "+fmt(items.length,0);
     v.querySelector(".vcap").textContent=dayTitle(items[i].e,nums);
@@ -792,9 +928,12 @@ function openViewer(items,start,nums,showDay){
 }
 function viewerSlide(m){
   const id=driveId(m);
+  if(m.kind==="audio"){
+    if(S.blobUrls[m.cid]) return '<div class="vaudio">🎙<audio src="'+esc(S.blobUrls[m.cid])+'" controls preload="metadata"></audio></div>';
+    return '<iframe class="aframe" data-src="https://drive.google.com/file/d/'+esc(encodeURIComponent(id))+'/preview"></iframe>';
+  }
   if(m.kind==="video"){
-    if(S.blobUrls[m.cid]) return '<video src="'+esc(S.blobUrls[m.cid])+'" controls playsinline preload="metadata"></video>';
-    return '<iframe data-src="https://drive.google.com/file/d/'+esc(encodeURIComponent(id))+'/preview" allow="autoplay; fullscreen" allowfullscreen></iframe>';
+    return vplayer(S.blobUrls[m.cid],id,true);
   }
   const src= S.blobUrls[m.cid] || "https://drive.google.com/thumbnail?id="+encodeURIComponent(id)+"&sz=w2000";
   return '<img class="vimg" src="'+esc(src)+'" alt="" draggable="false">';
@@ -858,6 +997,7 @@ function renderJournal(){
     S.openId = S.openId===el.dataset.id? null : el.dataset.id; renderJournal();
   }));
   $$("[data-edit]").forEach(b=>b.addEventListener("click",()=>{ S.editing=b.dataset.edit; S.draft=null; location.hash="add"; }));
+  $$("[data-share]").forEach(b=>b.addEventListener("click",ev=>{ ev.stopPropagation(); shareDay(b.dataset.share); }));
   $$("[data-del]").forEach(b=>b.addEventListener("click",async()=>{
     if(!await confirmBox(t("confirmDel"),t("yes"),t("no"))) return;
     await localDelete(b.dataset.del); toast(t("deleted")); renderJournal();
@@ -888,8 +1028,8 @@ function entryCard(e,n,col){
   for(const it of items()){ const c=num((e.counts||{})[it.key]); if(c) chips.push('<span class="chip static">'+esc(itemName(it))+mtMark(itemMT(it))+' <b>'+fmt(c,0)+'</b></span>'); }
   for(const k in (e.counts||{})){ if(!itemByKey(k) && num(e.counts[k])) chips.push('<span class="chip static">'+esc(k)+' <b>'+fmt(num(e.counts[k]),0)+'</b></span>'); }
   for(const x of (e.extras||[])){ if(x.name) chips.push('<span class="chip static">'+esc(extraName(x))+mtMark(extraMT(x))+' <b>'+fmt(num(x.count),0)+'</b></span>'); }
-  const ppl=(e.people||[]).length? '<div class="small muted" style="margin-top:6px">'+esc(e.people.join(", "))+(num(e.others)?" + "+fmt(num(e.others),0):"")+'</div>':"";
-  const tiles=dayMedia(e).map((m,i)=>{ const h=open?mediaFull(m):mediaTile(m); return !h? "" : m.kind==="video"&&open? h : '<button type="button" class="mtile" data-view="'+esc(e.id)+'" data-vi="'+i+'">'+h+'</button>'; }).filter(Boolean);
+  const ppl=(e.people||[]).length? '<div class="small muted" style="margin-top:6px">'+e.people.map(tx).join(", ")+(num(e.others)?" + "+fmt(num(e.others),0):"")+'</div>':"";
+  const tiles=dayMedia(e).map((m,i)=>{ const h=open?mediaFull(m):mediaTile(m); return !h? "" : (m.kind==="video"||m.kind==="audio")&&open? h : '<button type="button" class="mtile" data-view="'+esc(e.id)+'" data-vi="'+i+'">'+h+'</button>'; }).filter(Boolean);
   const ph=tiles.length? '<div class="thumbs">'+tiles.join("")+'</div>':"";
   const vids=(e.videos||[]).map(v=>ytId(v.url)).filter(Boolean);
   const vh=vids.length? '<div class="vidrow">'+vids.map(id=>'<a href="https://youtu.be/'+esc(id)+'" target="_blank" rel="noopener"><img src="'+esc(ytThumb(id))+'" loading="lazy" alt=""></a>').join("")+'</div>':"";
@@ -910,13 +1050,13 @@ function pickupCard(p,col,open,pend){
   if(num(p.weightKg)) meta.push("⚖️ "+fmt(num(p.weightKg))+" kg");
   const keys=(p.keys&&p.keys.length)? '<div class="chips">'+p.keys.map(k=>'<span class="chip static">'+esc(k==="_other"?t("pkOther"):itemName(itemByKey(k)||{key:k}))+'</span>').join("")+'</div>' : "";
   const days=open? '<div class="small muted" style="margin-top:6px">'+esc(t("pkCovers"))+': '+(p.covers||[]).map(id=>S.map[id]?esc(fmtDate(S.map[id].date,{day:"numeric",month:"short"})):"").filter(Boolean).join(", ")+'</div>' : "";
-  const tiles=dayMedia(p).map((m,i)=>{ const h=open?mediaFull(m):mediaTile(m); return !h? "" : m.kind==="video"&&open? h : '<button type="button" class="mtile" data-view="'+esc(p.id)+'" data-vi="'+i+'">'+h+'</button>'; }).filter(Boolean);
+  const tiles=dayMedia(p).map((m,i)=>{ const h=open?mediaFull(m):mediaTile(m); return !h? "" : (m.kind==="video"||m.kind==="audio")&&open? h : '<button type="button" class="mtile" data-view="'+esc(p.id)+'" data-vi="'+i+'">'+h+'</button>'; }).filter(Boolean);
   return '<div class="card entry pickup'+(open?" open":"")+'" data-id="'+esc(p.id)+'"><div class="hd"><span class="dayno pk">🚛 '+esc(t("pkShort"))+'</span><span class="dt">'+esc(fmtDate(p.date))+'</span>'+pend+'<span class="tot">'+fmt(n,0)+'</span></div>'+
     (agencyLabel(p)?'<div class="pkwho">'+esc(agencyLabel(p))+'</div>':"")+
     '<div class="meta">'+meta.map(x=>"<span>"+x+"</span>").join("")+'</div>'+keys+days+
     (p.notes?'<div class="notes">'+tx(p.notes)+'</div>':"")+(tiles.length?'<div class="thumbs">'+tiles.join("")+'</div>':"")+actions(p)+'</div>';
 }
-function actions(e){ return (S.openId===e.id?linkedFiles(e.id):"")+'<div class="acts"><button class="btn ghost" type="button" data-edit="'+esc(e.id)+'">'+esc(t("edit"))+'</button><button class="btn danger" type="button" data-del="'+esc(e.id)+'">'+esc(t("del"))+'</button></div>'; }
+function actions(e){ return (S.openId===e.id?linkedFiles(e.id):"")+'<div class="acts">'+(e.type!=="rest"?'<button class="btn ghost" type="button" data-share="'+esc(e.id)+'">↗ '+esc(t("share"))+'</button>':"")+'<button class="btn ghost" type="button" data-edit="'+esc(e.id)+'">'+esc(t("edit"))+'</button><button class="btn danger" type="button" data-del="'+esc(e.id)+'">'+esc(t("del"))+'</button></div>'; }
 
 /* ================================================================ form */
 function blankEntry(){
@@ -935,7 +1075,7 @@ function renderForm(keepDraft){
   const peopleDl=peopleAll.filter(p=>!(d.people||[]).includes(p));
   let h='<h2>'+esc(S.editing?t("editEntry"):t("newEntry"))+'</h2>';
   h+='<div class="seg"><button type="button" data-type="plog" class="'+(!rest?"on":"")+'">'+esc(t("plogDay"))+'</button><button type="button" data-type="rest" class="'+(rest?"on":"")+'">'+esc(t("restDay"))+'</button><button type="button" data-type="pickup">'+esc(t("pkType"))+'</button></div>';
-  h+='<div class="card"><div class="row"><div class="field"><label class="f" for="f_date">'+esc(t("date"))+'</label><input type="date" id="f_date" value="'+esc(d.date)+'"></div>';
+  h+='<div class="card"><div class="row"><div class="field"><label class="f" for="f_date">'+esc(t("date"))+'</label><input type="date" id="f_date" max="'+todayStr()+'" value="'+esc(d.date)+'"></div>';
   if(!rest) h+='<div class="field" style="max-width:120px"><label class="f" for="f_dayno">'+esc(t("dayNo"))+'</label><input type="number" inputmode="numeric" id="f_dayno" min="1" value="'+esc(d.dayNo)+'" placeholder="'+esc(S.editing?(dayNumbers()[S.editing]||""):d._suggestDay)+'"></div>';
   h+='</div><div id="dupwarn" class="hint" style="color:var(--warn)"></div>';
   if(rest){
@@ -944,9 +1084,9 @@ function renderForm(keepDraft){
     h+='<div class="row"><div class="field"><label class="f" for="f_start">'+esc(t("start"))+'</label><input type="time" id="f_start" value="'+esc(d.start)+'"></div><div class="field"><label class="f" for="f_end">'+esc(t("end"))+'</label><input type="time" id="f_end" value="'+esc(d.end)+'"></div></div>';
     h+='<div class="row"><div class="field" style="max-width:130px"><label class="f" for="f_dist">'+esc(t("distance"))+'</label><input type="number" inputmode="decimal" step="0.1" min="0" id="f_dist" value="'+esc(d.distanceKm)+'"></div>';
     h+='<div class="field"><label class="f" for="f_place">'+esc(t("place"))+'</label><input type="text" id="f_place" list="dl_place" value="'+esc(d.place)+'" placeholder="'+esc(t("placePh"))+'"><datalist id="dl_place">'+placesDl.map(p=>'<option value="'+esc(p)+'">').join("")+'</datalist></div></div></div>';
-    h+='<div class="card"><label class="f">'+esc(t("people"))+'</label><div class="chips">'+(d.people||[]).map((p,i)=>'<span class="chip">'+esc(p)+'<button type="button" data-rmp="'+i+'" aria-label="remove">✕</button></span>').join("")+'</div>';
+    h+='<div class="card"><label class="f">'+esc(t("people"))+'</label><div class="chips">'+(d.people||[]).map((p,i)=>'<span class="chip">'+txMark(p)+'<button type="button" data-rmp="'+i+'" aria-label="remove">✕</button></span>').join("")+'</div>';
     h+='<div class="row" style="margin-bottom:10px"><input type="text" id="f_person" list="dl_people" placeholder="'+esc(t("personPh"))+'" enterkeyhint="done"><button class="btn ghost" type="button" id="addperson" style="flex:none">'+esc(t("addBtn"))+'</button></div><datalist id="dl_people">'+peopleDl.map(p=>'<option value="'+esc(p)+'">').join("")+'</datalist>';
-    if(peopleDl.length) h+='<div class="chips">'+peopleDl.slice(0,12).map(p=>'<button type="button" class="chip static" style="border:0" data-addp="'+esc(p)+'">+ '+esc(p)+'</button>').join("")+'</div>';
+    if(peopleDl.length) h+='<div class="chips">'+peopleDl.slice(0,12).map(p=>'<button type="button" class="chip static" style="border:0" data-addp="'+esc(p)+'">+ '+txMark(p)+'</button>').join("")+'</div>';
     h+='<div class="item"><div class="nm">'+esc(t("others"))+'</div>'+stepper("others",d.others)+'</div></div>';
     h+='<div class="card"><h3>'+esc(t("items"))+'</h3>'+aiBox(d);
     for(const it of items()){ if(it.hidden && !num((d.counts||{})[it.key])) continue;
@@ -956,7 +1096,7 @@ function renderForm(keepDraft){
     h+='<div class="card"><div class="field"><label class="f" for="f_notes">'+esc(t("notes"))+'</label><textarea id="f_notes" placeholder="'+esc(t("notesPh"))+'">'+esc(d.notes)+'</textarea></div>';
     h+='<label class="f">'+esc(t("media"))+'</label><div class="photos" style="margin-bottom:8px">'+(d.media||[]).map((p,i)=>'<div class="ph">'+mediaTile(p)+(p.pending?'<span class="pend">⏳</span>':"")+'<button type="button" data-rmph="'+i+'" aria-label="remove">✕</button></div>').join("")+'</div>';
     if((d.videos||[]).length) h+='<div class="vids">'+d.videos.map((v,i)=>{ const id=ytId(v.url); return '<div class="vid"><img src="'+esc(id?ytThumb(id):"")+'" alt=""><span>'+esc(v.url)+'</span><button type="button" class="iconbtn" data-rmv="'+i+'" aria-label="remove">✕</button></div>'; }).join("")+'</div>';
-    h+='<label class="filebtn">📷 🎥 '+esc(t("addMedia"))+'<input type="file" id="f_files" accept="image/*,video/*" multiple></label><div class="hint">'+esc(t("mediaHint"))+'</div>';
+    h+=mediaButtons()+'<div class="hint">'+esc(t("mediaHint"))+'</div>';
     h+='</div>';
   }
   h+='<div class="row" style="margin-top:6px"><button class="btn ghost" type="button" id="cancel">'+esc(t("cancel"))+'</button><button class="btn" type="button" id="save">'+esc(t("save"))+'</button></div>';
@@ -1002,31 +1142,101 @@ function bindForm(){
   $$("[data-rmph]").forEach(b=>b.addEventListener("click",()=>{ readForm(); const p=d.media.splice(+b.dataset.rmph,1)[0]; if(p&&p.pending&&!isSavedPhoto(p.cid)){ IDB.del("blobs",p.cid); dropBlobUrl(p.cid); } renderForm(true); }));
   $$("[data-rmv]").forEach(b=>b.addEventListener("click",()=>{ readForm(); d.videos.splice(+b.dataset.rmv,1); renderForm(true); }));
   const fd=$("#f_date"); if(fd) fd.addEventListener("change",checkDup);
-  const ff=$("#f_files"); if(ff) ff.addEventListener("change",async()=>{
-    const files=Array.from(ff.files||[]); ff.value=""; readForm();
-    for(const f of files){
-      const isVideo=(f.type||"").startsWith("video/") || /\.(mp4|mov|3gp|webm|mkv)$/i.test(f.name||"");
-      if(isVideo && f.size>500*1024*1024){ toast(t("videoBig")); continue; }
-      let blob;
-      try{ blob = isVideo ? f : await shrinkImage(f); }catch(e){ toast(t("photoFail")); continue; }
-      const cid=uid(10);
-      try{ await IDB.put("blobs",cid,blob); }catch(e){ toast(t("phoneFull")); continue; }
-      S.blobUrls[cid]=URL.createObjectURL(blob);
-      d.media.push(isVideo ? {cid,pending:true,kind:"video",mime:f.type||"video/mp4",size:f.size} : {cid,pending:true,kind:"image"});
-    }
-    if(currentView()==="add") renderForm(true);
-  });
+  $$("input.mediain").forEach(inp=>inp.addEventListener("change",async()=>{ const files=Array.from(inp.files||[]); inp.value=""; readForm(); await addPicked(d,files); }));
+  const rb=$("#rec_btn"); if(rb) rb.addEventListener("click",()=>{ readForm(); recordAudio(async f=>{ await addPicked(d,[f]); }); });
   bindAi(d);
   $("#cancel").addEventListener("click",()=>{ discardDraftPhotos(); S.draft=null; S.editing=null; location.hash="journal"; });
   $("#save").addEventListener("click",saveForm);
 }
+/* media chosen, photographed, filmed or recorded: kept on the phone until it uploads */
+function mediaKind(f){
+  const ty=f.type||"", n=f.name||"";
+  if(ty.startsWith("video/")||/\.(mp4|mov|3gp|webm|mkv)$/i.test(n) && !ty.startsWith("audio/")) return "video";
+  if(ty.startsWith("audio/")||/\.(m4a|mp3|aac|ogg|opus|amr|wav|weba)$/i.test(n)) return "audio";
+  return "image";
+}
+async function addPicked(d,files){
+  for(const f of files){
+    const kind=mediaKind(f);
+    if(kind!=="image" && f.size>500*1024*1024){ toast(t("videoBig")); continue; }
+    let blob;
+    try{ blob = kind==="image" ? await shrinkImage(f) : f; }catch(e){ toast(t("photoFail")); continue; }
+    const cid=uid(10);
+    try{ await IDB.put("blobs",cid,blob); }catch(e){ toast(t("phoneFull")); continue; }
+    S.blobUrls[cid]=URL.createObjectURL(blob);
+    if(kind==="image") d.media.push({cid,pending:true,kind:"image"});
+    else { const m={cid,pending:true,kind,mime:f.type||(kind==="audio"?"audio/mp4":"video/mp4"),size:f.size}; if(f.dur) m.dur=f.dur;
+      else if(kind==="audio") m.dur=await new Promise(res=>{ const a=new Audio(); a.preload="metadata"; a.onloadedmetadata=()=>res(isFinite(a.duration)?Math.round(a.duration):0); a.onerror=()=>res(0); setTimeout(()=>res(0),3000); a.src=S.blobUrls[cid]; });
+      d.media.push(m); }
+  }
+  if(currentView()==="add") renderForm(true);
+}
+/* camera, video camera and voice recorder buttons, plus choosing from the phone */
+function mediaButtons(){
+  const rec=!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&window.MediaRecorder);
+  return '<div class="mbtns">'+
+    '<label class="mbtn">📷<span>'+esc(t("takePhoto"))+'</span><input type="file" class="mediain" accept="image/*" capture="environment"></label>'+
+    '<label class="mbtn">🎥<span>'+esc(t("takeVideo"))+'</span><input type="file" class="mediain" accept="video/*" capture="environment"></label>'+
+    (rec?'<button type="button" class="mbtn" id="rec_btn">🎙<span>'+esc(t("recAudio"))+'</span></button>':'')+
+    '<label class="mbtn">🖼️<span>'+esc(t("fromPhone"))+'</span><input type="file" class="mediain" id="f_files" accept="image/*,video/*,audio/*" multiple></label>'+
+  '</div>';
+}
+/* a voice note recorded inside the app */
+function fmtDur(s){ s=Math.round(s||0); return Math.floor(s/60)+":"+String(s%60).padStart(2,"0"); }
+function recordAudio(done){
+  const MAX=10*60;
+  const body='<div class="rec"><div class="rec-time" id="rec_t">0:00</div><div class="rec-lvl"><i id="rec_l"></i></div>'+
+    '<button type="button" class="rec-go" id="rec_go" aria-label="'+esc(t("recStart"))+'"><span></span></button><div class="hint" id="rec_h">'+esc(t("recHint"))+'</div>'+
+    '<audio id="rec_play" controls hidden></audio></div>'+
+    '<div class="row" style="margin-top:12px"><button type="button" class="btn ghost" data-x>'+esc(t("cancel"))+'</button><button type="button" class="btn" data-ok disabled>'+esc(t("recAttach"))+'</button></div>';
+  let stream=null, mr=null, chunks=[], t0=0, timer=null, blob=null, raf=0, ac=null;
+  const stopAll=()=>{ try{ if(mr&&mr.state!=="inactive") mr.stop(); }catch(e){} if(stream) stream.getTracks().forEach(x=>x.stop()); stream=null; clearInterval(timer); cancelAnimationFrame(raf); try{ ac&&ac.close(); }catch(e){} ac=null; holdWake(false); };
+  openSheet(t("recAudio"),body,(el,close0)=>{
+    const close=()=>{ stopAll(); close0(); };
+    const go=el.querySelector("#rec_go"), tEl=el.querySelector("#rec_t"), hEl=el.querySelector("#rec_h"), play=el.querySelector("#rec_play"), ok=el.querySelector("[data-ok]"), lvl=el.querySelector("#rec_l");
+    el.querySelector("[data-x]").onclick=close;
+    $("#sheet").onclick=ev=>{ if(ev.target.id==="sheet") close(); };
+    go.onclick=async()=>{
+      if(mr && mr.state==="recording"){ mr.stop(); return; }
+      try{ stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}}); }
+      catch(e){ hEl.textContent=t("recDenied"); return; }
+      const types=["audio/mp4","audio/webm;codecs=opus","audio/webm","audio/ogg;codecs=opus"];
+      const mime=types.find(x=>window.MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(x))||"";
+      chunks=[]; blob=null; play.hidden=true; ok.disabled=true;
+      mr=new MediaRecorder(stream,mime?{mimeType:mime,audioBitsPerSecond:64000}:undefined);
+      mr.ondataavailable=ev=>{ if(ev.data&&ev.data.size) chunks.push(ev.data); };
+      mr.onstop=()=>{ const ty=(mr.mimeType||mime||"audio/webm").split(";")[0]; blob=new Blob(chunks,{type:ty}); const secs=(Date.now()-t0)/1000;
+        stopAll(); go.classList.remove("on"); go.setAttribute("aria-label",t("recStart"));
+        play.src=URL.createObjectURL(blob); play.hidden=false; ok.disabled=false; hEl.textContent=t("recAgain");
+        ok.onclick=()=>{ const ext=/mp4/.test(ty)?"m4a":/ogg/.test(ty)?"ogg":"webm"; const f=new File([blob],"voice-"+Date.now()+"."+ext,{type:ty}); f.dur=Math.round(secs); close0(); done(f); }; };
+      mr.start(1000); t0=Date.now(); go.classList.add("on"); go.setAttribute("aria-label",t("recStop")); hEl.textContent=t("recStopHint"); holdWake(true);
+      timer=setInterval(()=>{ const s=(Date.now()-t0)/1000; tEl.textContent=fmtDur(s); if(s>=MAX) mr.stop(); },250);
+      try{ ac=new (window.AudioContext||window.webkitAudioContext)(); const an=ac.createAnalyser(); an.fftSize=256; ac.createMediaStreamSource(stream).connect(an); const buf=new Uint8Array(an.fftSize);
+        const tick=()=>{ an.getByteTimeDomainData(buf); let mx=0; for(const v of buf) mx=Math.max(mx,Math.abs(v-128)); lvl.style.width=Math.min(100,mx/1.28)+"%"; raf=requestAnimationFrame(tick); }; tick(); }catch(e){}
+    };
+  });
+}
 function isSavedPhoto(cid){ return entries().some(e=>(e.media||[]).some(p=>p.cid===cid)); }
 function discardDraftPhotos(){ const d=S.draft; if(!d) return; for(const p of (d.media||[])) if(p.pending && !isSavedPhoto(p.cid)){ IDB.del("blobs",p.cid); dropBlobUrl(p.cid); } }
-function checkDup(){ const el=$("#dupwarn"), fd=$("#f_date"); if(!el||!fd||!S.draft) return; const dup=entries().some(e=>e.date===fd.value && e.id!==S.draft.id); el.textContent=dup? t("dupDate"):""; }
+/* Another day entry on the same date? (A pickup on the same day is normal and doesn't count.)
+   New entry: offer to open the existing one instead. Editing: say there's a second one and offer to open it. */
+function checkDup(){
+  const el=$("#dupwarn"), fd=$("#f_date"); if(!el||!fd||!S.draft) return;
+  const other=entries().find(e=>e.date===fd.value && e.id!==S.draft.id && e.type!=="pickup");
+  if(!other){ el.innerHTML=""; return; }
+  el.innerHTML=esc(S.editing? t("dupOther") : t("dupDate"))+' <button type="button" class="linkbtn" id="dup_open">'+esc(t("dupOpen"))+'</button>';
+  $("#dup_open").onclick=async()=>{
+    readForm(); const d=S.draft;
+    const typed= entryTotal(d)>0 || (d.notes||"").trim() || (d.place||"").trim() || (d.media||[]).length;
+    if(typed && !await confirmBox(t("dupDiscard"),t("dupYes"),t("no"))) return;
+    discardDraftPhotos(); S.editing=other.id; S.draft=null; renderForm(); window.scrollTo(0,0);
+  };
+}
 async function saveForm(){
   readForm();
   const d=S.draft;
   if(!d.date){ toast(t("needDate")); return; }
+  if(d.date>todayStr()){ toast(t("futureDate")); return; }
   if(d.type==="pickup") return savePickup(d);
   const old=d.id && S.map[d.id];
   const e={ id: d.id || (d.date+"-"+uid(6)), type:d.type, date:d.date, notes:(d.notes||"").trim(), createdAt:(old&&old.createdAt)||new Date().toISOString() };
@@ -1065,7 +1275,7 @@ function renderPickupForm(d){
   const allKeys=!d.keys||!d.keys.length;
   let h='<h2>'+esc(S.editing?t("pkEditTitle"):t("pkTitle"))+'</h2>';
   if(!S.editing) h+='<div class="seg"><button type="button" data-type="plog">'+esc(t("plogDay"))+'</button><button type="button" data-type="rest">'+esc(t("restDay"))+'</button><button type="button" data-type="pickup" class="on">'+esc(t("pkType"))+'</button></div>';
-  h+='<div class="card"><div class="row"><div class="field"><label class="f" for="f_date">'+esc(t("date"))+'</label><input type="date" id="f_date" value="'+esc(d.date)+'"></div><div class="field" style="max-width:140px"><label class="f" for="f_start">'+esc(t("pkTime"))+'</label><input type="time" id="f_start" value="'+esc(d.start||"")+'"></div></div>';
+  h+='<div class="card"><div class="row"><div class="field"><label class="f" for="f_date">'+esc(t("date"))+'</label><input type="date" id="f_date" max="'+todayStr()+'" value="'+esc(d.date)+'"></div><div class="field" style="max-width:140px"><label class="f" for="f_start">'+esc(t("pkTime"))+'</label><input type="time" id="f_start" value="'+esc(d.start||"")+'"></div></div>';
   h+='<label class="f">'+esc(t("pkWho"))+'</label><div class="chips">'+["panchayat","municipal","scrap","other"].map(a=>'<button type="button" class="chip static agchip'+(d.agency===a?" on":"")+'" data-ag="'+a+'">'+esc(t({panchayat:"agPanchayat",municipal:"agMunicipal",scrap:"agScrap",other:"agOther"}[a]))+'</button>').join("")+'</div>';
   h+='<input type="text" id="f_agname" value="'+esc(d.agencyName||"")+'" placeholder="'+esc(t("pkNamePh"))+'"></div>';
   h+='<div class="card"><div class="row" style="align-items:center"><h3 style="flex:1;margin:0">'+esc(t("pkDays"))+'</h3><button type="button" class="btn ghost" id="pk_all" style="flex:none;min-height:36px;padding:6px 10px">'+esc(t("pkAll"))+'</button><button type="button" class="btn ghost" id="pk_none" style="flex:none;min-height:36px;padding:6px 10px">'+esc(t("pkNone"))+'</button></div><p class="hint">'+esc(t("pkDaysHint"))+'</p>';
@@ -1080,7 +1290,7 @@ function renderPickupForm(d){
   h+='<div class="card"><label class="f">'+esc(t("volume"))+'</label><div class="row"><div><input type="number" inputmode="numeric" min="0" id="f_bags" value="'+esc(d.bags)+'"><div class="hint">'+esc(t("bags"))+'</div></div><div><input type="number" inputmode="decimal" step="0.1" min="0" id="f_kg" value="'+esc(d.weightKg)+'"><div class="hint">'+esc(t("weight"))+'</div></div></div>';
   h+='<div class="field" style="margin-top:12px"><label class="f" for="f_notes">'+esc(t("notes"))+'</label><textarea id="f_notes" placeholder="'+esc(t("pkNotesPh"))+'">'+esc(d.notes||"")+'</textarea></div>';
   h+='<label class="f">'+esc(t("media"))+'</label><div class="photos" style="margin-bottom:8px">'+(d.media||[]).map((p,i)=>'<div class="ph">'+mediaTile(p)+(p.pending?'<span class="pend">⏳</span>':"")+'<button type="button" data-rmph="'+i+'" aria-label="remove">✕</button></div>').join("")+'</div>';
-  h+='<label class="filebtn">📷 🎥 '+esc(t("addMedia"))+'<input type="file" id="f_files" accept="image/*,video/*" multiple></label><div class="hint">'+esc(t("mediaHint"))+'</div></div>';
+  h+=mediaButtons()+'<div class="hint">'+esc(t("mediaHint"))+'</div></div>';
   h+='<div class="row" style="margin-top:6px"><button class="btn ghost" type="button" id="cancel">'+esc(t("cancel"))+'</button><button class="btn" type="button" id="save">'+esc(t("save"))+'</button></div>';
   $("#view").innerHTML=h;
   bindForm();
@@ -1095,6 +1305,8 @@ function renderPickupForm(d){
   const fd=$("#f_date"); fd.addEventListener("change",()=>{ readForm(); if(!S.editing){ d.covers=cand.filter(e=>e.date<=d.date).map(e=>e.id); } renderForm(true); });
 }
 async function savePickup(d){
+  if(!d.date){ toast(t("needDate")); return; }
+  if(d.date>todayStr()){ toast(t("futureDate")); return; }
   if(!(d.covers||[]).length){ toast(t("pkNeedDays")); return; }
   if(d.keys && (!d.keys.length || d.keys.includes("__none__"))){ toast(t("pkNeedKeys")); return; }
   const old=d.id && S.map[d.id];
@@ -1168,7 +1380,7 @@ async function localBlob(cid){
 }
 async function collectAiImages(d){
   const out=[], media=d.media||[];
-  for(const m of media.filter(m=>m.kind!=="video")){
+  for(const m of media.filter(m=>m.kind==="image"||!m.kind)){
     if(out.length>=AI_MAX_IMAGES) break;
     const b=await localBlob(m.cid);
     if(b) out.push({data:await blobToBase64(b),mime:b.type||"image/jpeg",source:"photo"});
@@ -1332,7 +1544,7 @@ function openFile(id){
   const k=fileKind(f), local=S.blobUrls[f.id], drive=f.driveId;
   let pv="";
   if(k==="image") pv='<img src="'+esc(local||("https://drive.google.com/thumbnail?id="+encodeURIComponent(drive)+"&sz=w1600"))+'" alt="">';
-  else if(k==="video") pv= local? '<video src="'+esc(local)+'" controls playsinline preload="metadata"></video>' : '<iframe src="https://drive.google.com/file/d/'+esc(encodeURIComponent(drive))+'/preview" allow="autoplay; fullscreen" allowfullscreen></iframe>';
+  else if(k==="video") pv= vplayer(local,drive);
   else if(k==="pdf"&&drive) pv='<iframe src="https://drive.google.com/file/d/'+esc(encodeURIComponent(drive))+'/preview"></iframe>';
   else pv='<div class="bigicon">'+({pdf:"📄",other:"📎"}[k])+'<small>'+esc(f.name)+'</small></div>';
   const days=entries().slice().sort((a,b)=>b.date.localeCompare(a.date)), nums=dayNumbers();
@@ -1378,7 +1590,7 @@ function renderStats(){
   for(const e of plog){
     const tot=entryTotal(e); total+=tot;
     for(const k in (e.counts||{})){ const n=num(e.counts[k]); byItem[k]=(byItem[k]||0)+n; const it=itemByKey(k); if(it&&it.hazard) haz+=n; }
-    for(const x of (e.extras||[])){ const nm=(x.name||"").trim(); if(!nm) continue; const key=nm.toLowerCase(); if(!extraNames[key]) extraNames[key]={name:nm,n:0}; extraNames[key].n+=num(x.count); }
+    for(const x of (e.extras||[])){ const nm=(x.name||"").trim(); if(!nm) continue; const key=nm.toLowerCase(); if(!extraNames[key]) extraNames[key]={name:(x.names&&x.names[S.lang])||txPlain(nm),n:0}; extraNames[key].n+=num(x.count); }
     if(num(e.distanceKm)){ km+=num(e.distanceKm); kmDays++; kmItems+=tot; }
     const m=minutes(e); if(m!=null){ mins+=m; minDays++; }
     bags+=num(e.bags); kg+=num(e.weightKg);
@@ -1414,9 +1626,9 @@ function renderStats(){
   const days=Object.keys(daily).sort();
   if(days.length) h+='<div class="card"><h3>'+esc(t("byDay"))+'</h3><div class="chartbox" id="chart">'+dailyChart(days,daily)+'</div></div>';
   const pl=Object.entries(places).sort((x,y)=>y[1].n-x[1].n);
-  if(pl.length) h+='<div class="card"><h3>'+esc(t("byPlace"))+'</h3><table class="t"><thead><tr><th>'+esc(t("colPlace"))+'</th><th class="n">'+esc(t("colDays"))+'</th><th class="n">'+esc(t("colItems"))+'</th></tr></thead><tbody>'+pl.map(([p,v])=>'<tr><td>'+esc(p)+'</td><td class="n">'+fmt(v.d,0)+'</td><td class="n">'+fmt(v.n,0)+'</td></tr>').join("")+'</tbody></table></div>';
+  if(pl.length) h+='<div class="card"><h3>'+esc(t("byPlace"))+'</h3><table class="t"><thead><tr><th>'+esc(t("colPlace"))+'</th><th class="n">'+esc(t("colDays"))+'</th><th class="n">'+esc(t("colItems"))+'</th></tr></thead><tbody>'+pl.map(([p,v])=>'<tr><td>'+tx(p)+'</td><td class="n">'+fmt(v.d,0)+'</td><td class="n">'+fmt(v.n,0)+'</td></tr>').join("")+'</tbody></table></div>';
   const pp=Object.entries(persons).sort((x,y)=>y[1]-x[1]||x[0].localeCompare(y[0]));
-  if(pp.length) h+='<div class="card"><h3>'+esc(t("byPerson"))+'</h3><table class="t"><thead><tr><th>'+esc(t("colName"))+'</th><th class="n">'+esc(t("colDays"))+'</th></tr></thead><tbody>'+pp.map(([p,n])=>'<tr><td>'+esc(p)+'</td><td class="n">'+fmt(n,0)+'</td></tr>').join("")+'</tbody></table></div>';
+  if(pp.length) h+='<div class="card"><h3>'+esc(t("byPerson"))+'</h3><table class="t"><thead><tr><th>'+esc(t("colName"))+'</th><th class="n">'+esc(t("colDays"))+'</th></tr></thead><tbody>'+pp.map(([p,n])=>'<tr><td>'+tx(p)+'</td><td class="n">'+fmt(n,0)+'</td></tr>').join("")+'</tbody></table></div>';
   $("#view").innerHTML=h;
   bindStats();
 }
@@ -1469,7 +1681,15 @@ function renderSettings(){
   h+='<label class="small" style="display:flex;gap:8px;align-items:center;margin-top:12px"><input type="checkbox" id="c_wifi"'+(lsGet("plog.wifiOnly")==="1"?" checked":"")+'> '+esc(t("wifiOnly"))+'</label>';
   if(S.meta.aiEnabled) h+='<label class="small" style="display:flex;gap:8px;align-items:center;margin-top:8px"><input type="checkbox" id="c_tx"'+(lsGet("plog.txOff")==="1"?"":" checked")+'> <span>'+esc(t("txSetting"))+' '+TX_ICON+'</span></label>';
   if(S.meta.sheetUrl||S.meta.folderUrl) h+='<div class="linkrow">'+(S.meta.sheetUrl?'<a class="btn ghost" href="'+esc(S.meta.sheetUrl)+'" target="_blank" rel="noopener">📊 '+esc(t("openSheet"))+'</a>':'')+(S.meta.folderUrl?'<a class="btn ghost" href="'+esc(S.meta.folderUrl)+'" target="_blank" rel="noopener">🖼️ '+esc(t("openFolder"))+'</a>':'')+'</div>';
-  if(S.installEvt) h+='<button type="button" class="btn ghost block" id="c_install" style="margin-top:10px">📲 '+esc(t("install"))+'</button>';
+  // Samsung Internet wraps installed web apps in an outdated package that Play Protect blocks; Chrome's works
+  const samsung=/SamsungBrowser/i.test(navigator.userAgent) && /Android/i.test(navigator.userAgent);
+  if(samsung && !(window.matchMedia&&matchMedia("(display-mode: standalone)").matches)){
+    const u=location.href.replace(/^https?:\/\//,"").replace(/#.*$/,"");
+    h+='<div class="hint" style="margin-top:10px">'+esc(t("samsungHint"))+'</div><a class="btn ghost block" style="margin-top:6px;text-align:center" href="intent://'+esc(u)+'#Intent;scheme=https;package=com.android.chrome;end">📲 '+esc(t("openChrome"))+'</a>';
+  } else if(/iPhone|iPad|iPod/.test(navigator.userAgent) && !navigator.standalone && !(window.matchMedia&&matchMedia("(display-mode: standalone)").matches)){
+    // iOS has no install button for web apps: it's done from the Share menu
+    h+='<div class="hint" style="margin-top:10px">📲 '+esc(t("iosHint"))+'</div>';
+  } else if(S.installEvt) h+='<button type="button" class="btn ghost block" id="c_install" style="margin-top:10px">📲 '+esc(t("install"))+'</button>';
   h+='</div>';
   // categories
   h+='<div class="card"><div class="field"><label class="f" for="s_title">'+esc(t("sTitle"))+'</label><input type="text" id="s_title" value="'+esc(sDraft.title)+'"></div>';
@@ -1492,7 +1712,8 @@ function renderSettings(){
   // export / import
   h+='<div class="card"><h3>'+esc(t("export"))+'</h3><div class="row"><button type="button" class="btn ghost" id="x_csv">'+esc(t("csv"))+'</button><button type="button" class="btn ghost" id="x_json">'+esc(t("json"))+'</button></div></div>';
   h+='<div class="card"><h3>'+esc(t("importT"))+'</h3><label class="filebtn">'+esc(t("importBtn"))+'<input type="file" id="i_file" accept="application/json,.json"></label></div>';
-  $("#view").innerHTML=h;
+  h+=versionCard();
+  $("#view").innerHTML=h; checkVersion();
   bindSettings();
 }
 function bindSettings(){
@@ -1578,8 +1799,8 @@ function toCSV(){
       .concat([(e.extras||[]).map(x=>x.name+": "+x.count).join("; "),rest?"":entryTotal(e),e.bags,e.weightKg,e.notes,
         (e.media||[]).filter(p=>p.id&&p.kind!=="video").map(p=>"https://drive.google.com/file/d/"+p.id+"/view").join(" "),
         (e.media||[]).filter(p=>p.id&&p.kind==="video").map(p=>"https://drive.google.com/file/d/"+p.id+"/view").concat((e.videos||[]).map(v=>v.url)).join(" ")])
-      .concat(isPlog(e)&&col[e.id]? [col[e.id].status, col[e.id].last?col[e.id].last.date:"", col[e.id].last?agencyLabel(col[e.id].last):"","","",""]
-             : e.type==="pickup"? ["","","",agencyLabel(e),(e.covers||[]).length,pickupItems(e,col)] : ["","","","","",""]);
+      .concat(isPlog(e)&&col[e.id]? [col[e.id].status, col[e.id].last?col[e.id].last.date:"", col[e.id].last?agencyLabel(col[e.id].last,true):"","","",""]
+             : e.type==="pickup"? ["","","",agencyLabel(e,true),(e.covers||[]).length,pickupItems(e,col)] : ["","","","","",""]);
     rows.push(r.map(q).join(","));
   }
   return "﻿"+rows.join("\n");
@@ -1587,6 +1808,13 @@ function toCSV(){
 
 /* ================================================================ start */
 window.addEventListener("beforeinstallprompt",e=>{ e.preventDefault(); S.installEvt=e; if(currentView()==="settings"&&!settingsDirty) renderSettings(); });
+/* the splash stays until the first screen is drawn; from the home screen it gets time to finish growing */
+function hideSplash(){
+  const sp=document.getElementById("splash"); if(!sp||sp.dataset.going) return; sp.dataset.going="1";
+  const standalone=window.matchMedia&&matchMedia("(display-mode: standalone)").matches;
+  const wait=Math.max(0,(standalone?1700:300)-performance.now());
+  setTimeout(()=>{ sp.classList.add("out"); setTimeout(()=>sp.remove(),350); },wait);
+}
 async function init(){
   try{ I18N.langs=await fetchJSON("i18n/languages.json"); }catch(e){ I18N.langs=[{code:"kn",name:"ಕನ್ನಡ",english:"Kannada",short:"ಕ",intl:"kn-IN",font:"Noto Sans Kannada"},{code:"en",name:"English",english:"English",short:"EN",intl:"en-IN",font:"Noto Sans"}]; }
   try{ I18N.en=await fetchJSON("i18n/en.json"); I18N.files.en=I18N.en; }catch(e){}
@@ -1612,7 +1840,7 @@ async function init(){
   if(!apiUrl()||!passcode()) S.sync="none"; else if(navigator.onLine===false) S.sync="offline";
   const want=lsGet("plog.lang")||enabledLangs()[0]||"kn";
   await setLang(I18N.langs.some(l=>l.code===want)? want : "kn");
-  route();
+  route(); hideSplash();
   if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{});
   if("serviceWorker" in navigator && location.protocol!=="file:"){
     // look for a new version each time the app is opened or comes back to the front
@@ -1629,4 +1857,5 @@ async function init(){
   }
   kickSync(200);
 }
-init();
+init().catch(err=>{ console.error(err); }).finally(()=>hideSplash());
+setTimeout(hideSplash,10000);   // never leave the splash up, whatever happens

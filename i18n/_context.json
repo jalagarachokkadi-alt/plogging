@@ -282,7 +282,7 @@
  "dupDate": {
   "group": "3 New day form",
   "kind": "message",
-  "where": "Warning under the date when that date already has an entry"
+  "where": "new entry form, when the chosen date already has a day entry"
  },
  "media": {
   "group": "4 Photos & videos",
@@ -1228,5 +1228,170 @@
   "group": "13 Photos & viewer",
   "kind": "label",
   "where": "journal, top line beside the Days | Photos switch; {d} = plogging days, {n} = items so far"
+ },
+ "samsungHint": {
+  "group": "9 Settings",
+  "kind": "message",
+  "where": "Settings, shown only in Samsung Internet instead of the install button"
+ },
+ "openChrome": {
+  "group": "9 Settings",
+  "kind": "button",
+  "where": "Settings, Samsung Internet only: opens this page in Chrome"
+ },
+ "dupOther": {
+  "group": "3 New day form",
+  "kind": "message",
+  "where": "edit form, when another day entry has the same date"
+ },
+ "dupOpen": {
+  "group": "3 New day form",
+  "kind": "button",
+  "where": "link after those messages: opens the other entry for editing"
+ },
+ "dupDiscard": {
+  "group": "3 New day form",
+  "kind": "message",
+  "where": "confirmation before switching to the other entry when something has been typed"
+ },
+ "dupYes": {
+  "group": "3 New day form",
+  "kind": "button",
+  "where": "yes-button of that confirmation"
+ },
+ "iosHint": {
+  "group": "9 Settings",
+  "kind": "message",
+  "where": "Settings, iPhone/iPad only (in the browser): how to add the app to the home screen"
+ },
+ "share": {
+  "group": "6 Journal",
+  "kind": "label",
+  "where": "button on an opened day card, and title of the share sheet"
+ },
+ "shareTotal": {
+  "group": "6 Journal",
+  "kind": "label",
+  "where": "shared post: {n} = items"
+ },
+ "sharePeople": {
+  "group": "6 Journal",
+  "kind": "label",
+  "where": "shared post when names are left out: {n} = people"
+ },
+ "shareNames": {
+  "group": "6 Journal",
+  "kind": "label",
+  "where": "share sheet: checkbox"
+ },
+ "sharePhotos": {
+  "group": "6 Journal",
+  "kind": "label",
+  "where": "share sheet: checkbox; {n} = photos (up to 6)"
+ },
+ "shareCopy": {
+  "group": "6 Journal",
+  "kind": "label",
+  "where": "share sheet: button"
+ },
+ "shareCopied": {
+  "group": "6 Journal",
+  "kind": "label",
+  "where": "message after copying"
+ },
+ "aboutT": {
+  "group": "9 Settings",
+  "kind": "label",
+  "where": "Settings: heading of the version card"
+ },
+ "appVersion": {
+  "group": "9 Settings",
+  "kind": "label",
+  "where": "Settings → About: app version"
+ },
+ "scriptVersion": {
+  "group": "9 Settings",
+  "kind": "label",
+  "where": "Settings → About: date of the deployed Apps Script"
+ },
+ "verChecking": {
+  "group": "9 Settings",
+  "kind": "label",
+  "where": "Settings → About: while checking for a newer version"
+ },
+ "verLatest": {
+  "group": "9 Settings",
+  "kind": "label",
+  "where": "Settings → About: this phone has the newest version"
+ },
+ "verUpdate": {
+  "group": "9 Settings",
+  "kind": "label",
+  "where": "Settings → About: tap to update; {v} = newest version"
+ },
+ "verOffline": {
+  "group": "9 Settings",
+  "kind": "label",
+  "where": "Settings → About: no connection"
+ },
+ "futureDate": {
+  "group": "3 New day form",
+  "kind": "message",
+  "where": "when saving a day or pickup dated in the future"
+ },
+ "takePhoto": {
+  "group": "4 Photos & videos",
+  "kind": "label",
+  "where": "form: opens the camera for a photo"
+ },
+ "takeVideo": {
+  "group": "4 Photos & videos",
+  "kind": "label",
+  "where": "form: opens the camera for a video"
+ },
+ "recAudio": {
+  "group": "4 Photos & videos",
+  "kind": "label",
+  "where": "form: records a voice note in the app; also the recorder's title"
+ },
+ "fromPhone": {
+  "group": "4 Photos & videos",
+  "kind": "label",
+  "where": "form: choose photos, videos or audio already on the phone"
+ },
+ "recStart": {
+  "group": "4 Photos & videos",
+  "kind": "label",
+  "where": "recorder: red button (screen readers)"
+ },
+ "recStop": {
+  "group": "4 Photos & videos",
+  "kind": "label",
+  "where": "recorder: button while recording (screen readers)"
+ },
+ "recHint": {
+  "group": "4 Photos & videos",
+  "kind": "label",
+  "where": "recorder: before recording"
+ },
+ "recStopHint": {
+  "group": "4 Photos & videos",
+  "kind": "label",
+  "where": "recorder: while recording"
+ },
+ "recAgain": {
+  "group": "4 Photos & videos",
+  "kind": "label",
+  "where": "recorder: after recording"
+ },
+ "recAttach": {
+  "group": "4 Photos & videos",
+  "kind": "label",
+  "where": "recorder: attach the recording"
+ },
+ "recDenied": {
+  "group": "4 Photos & videos",
+  "kind": "label",
+  "where": "recorder: microphone permission refused"
  }
 }

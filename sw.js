@@ -1,7 +1,7 @@
 /* Service worker: keeps ಜಲಗಾರ usable offline.
    Language files other than en/kn are cached the first time they are used.
    Bump VERSION whenever you change index.html / app.js / config.js. */
-const VERSION="v27";
+const VERSION="v41";
 const SHELL = "plog-shell-" + VERSION;
 const MEDIA = "plog-media";
 const FILES = ["./", "./index.html", "./app.js", "./config.js", "./manifest.webmanifest",
@@ -34,6 +34,7 @@ self.addEventListener("fetch", e => {
   const url = new URL(req.url);
 
   if (url.origin === self.location.origin) {
+    if (url.searchParams.has("check")) return;   // version check: always the network
     // app files come from this version's cache, so index.html and app.js always match.
     // A new version arrives as a new service worker (VERSION changed); the page then reloads itself.
     if (req.mode === "navigate") {

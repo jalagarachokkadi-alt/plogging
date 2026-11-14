@@ -1,0 +1,164 @@
+{
+ "version": 1,
+ "note": "Days transcribed from the notebook photos (Days 1, 6, 7, 10 were not in the photos; Kannada notes not transcribed). 'Cans' recorded as beer cans.",
+ "entries": [
+  {
+   "id": "2026-10-19-nb02",
+   "type": "plog",
+   "date": "2026-10-19",
+   "dayNo": 2,
+   "start": "",
+   "end": "",
+   "distanceKm": null,
+   "place": "",
+   "people": [],
+   "others": 0,
+   "counts": {
+    "plastic_bottle": 24,
+    "beer_can": 8,
+    "glass_bottle": 4
+   },
+   "extras": [],
+   "bags": null,
+   "weightKg": null,
+   "notes": "",
+   "photos": [],
+   "videos": [],
+   "createdAt": "2026-11-11T07:00:00Z"
+  },
+  {
+   "id": "2026-10-20-nb03",
+   "type": "plog",
+   "date": "2026-10-20",
+   "dayNo": 3,
+   "start": "",
+   "end": "",
+   "distanceKm": null,
+   "place": "",
+   "people": [],
+   "others": 0,
+   "counts": {
+    "plastic_bottle": 34,
+    "beer_can": 9,
+    "glass_bottle": 8
+   },
+   "extras": [],
+   "bags": null,
+   "weightKg": null,
+   "notes": "A truly satisfying and proud moment. Every bottle collected is a step towards a cleaner neighbourhood.",
+   "photos": [],
+   "videos": [],
+   "createdAt": "2026-11-11T07:00:00Z"
+  },
+  {
+   "id": "2026-10-21-nb04",
+   "type": "plog",
+   "date": "2026-10-21",
+   "dayNo": 4,
+   "start": "",
+   "end": "",
+   "distanceKm": null,
+   "place": "",
+   "people": [],
+   "others": 0,
+   "counts": {
+    "plastic_bottle": 84,
+    "syringe": 5,
+    "glass_bottle": 10,
+    "beer_can": 15
+   },
+   "extras": [],
+   "bags": null,
+   "weightKg": null,
+   "notes": "Found a puppy in Padavu.",
+   "photos": [],
+   "videos": [],
+   "createdAt": "2026-11-11T07:00:00Z"
+  },
+  {
+   "id": "2026-10-22-nb05",
+   "type": "plog",
+   "date": "2026-10-22",
+   "dayNo": 5,
+   "start": "",
+   "end": "",
+   "distanceKm": 1,
+   "place": "",
+   "people": [],
+   "others": 0,
+   "counts": {
+    "plastic_bottle": 120,
+    "glass_bottle": 10,
+    "beer_can": 15
+   },
+   "extras": [],
+   "bags": null,
+   "weightKg": null,
+   "notes": "",
+   "photos": [],
+   "videos": [],
+   "createdAt": "2026-11-11T07:00:00Z"
+  },
+  {
+   "id": "2026-10-30-nb08",
+   "type": "plog",
+   "date": "2026-10-30",
+   "dayNo": 8,
+   "start": "",
+   "end": "",
+   "distanceKm": null,
+   "place": "",
+   "people": [],
+   "others": 0,
+   "counts": {
+    "plastic_bottle": 70,
+    "beer_can": 20,
+    "glass_bottle": 15
+   },
+   "extras": [],
+   "bags": null,
+   "weightKg": null,
+   "notes": "",
+   "photos": [],
+   "videos": [],
+   "createdAt": "2026-11-11T07:00:00Z"
+  },
+  {
+   "id": "2026-10-31-rest",
+   "type": "rest",
+   "date": "2026-10-31",
+   "notes": "",
+   "createdAt": "2026-11-11T07:00:00Z"
+  },
+  {
+   "id": "2026-11-01-nb09",
+   "type": "plog",
+   "date": "2026-11-01",
+   "dayNo": 9,
+   "start": "",
+   "end": "",
+   "distanceKm": null,
+   "place": "",
+   "people": [],
+   "others": 0,
+   "counts": {
+    "plastic_bottle": 200,
+    "glass_bottle": 20,
+    "beer_can": 15,
+    "broken_glass": 1
+   },
+   "extras": [
+    {
+     "name": "Full beer bottle",
+     "count": 2
+    }
+   ],
+   "bags": null,
+   "weightKg": null,
+   "notes": "",
+   "photos": [],
+   "videos": [],
+   "createdAt": "2026-11-11T07:00:00Z"
+  }
+ ]
+}

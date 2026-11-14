@@ -157,12 +157,28 @@ input.mtin{border-style:dashed}
 .empty .btn{margin-top:14px}
 .hint{font-size:.8rem;color:var(--muted);margin-top:4px}
 .loading{text-align:center;padding:40px;color:var(--muted)}
-@media (prefers-color-scheme:dark){header.top h1 .logo,.splash img{filter:invert(.9)}}
-.splash{min-height:70vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
-.splash img{width:min(56vw,240px);height:auto}
-.splash .nm{font-size:1.6rem;font-weight:700;font-family:"Noto Sans Kannada","Noto Sans",sans-serif;color:var(--ink)}
-.splash .dots i{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--muted);margin:0 3px;animation:pulse 1.2s infinite}
-.splash .dots i:nth-child(2){animation-delay:.2s}.splash .dots i:nth-child(3){animation-delay:.4s}
+@media (prefers-color-scheme:dark){header.top h1 .logo,#splash img{filter:invert(.9)}}
+/* splash: the large logo over everything until the first screen is ready */
+#splash{position:fixed;inset:0;z-index:80;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;transition:opacity .3s ease}
+#splash.out{opacity:0;pointer-events:none}
+#splash img{width:min(60vw,260px);height:auto}
+#splash .nm,#splash .dots{position:absolute;left:0;right:0;text-align:center}
+#splash .nm{top:calc(50% + min(30vw,130px) + 10px);font-size:1.7rem;font-weight:700;font-family:"Noto Sans Kannada","Noto Sans",sans-serif;color:var(--ink)}
+#splash .dots{top:calc(50% + min(30vw,130px) + 64px)}
+#splash .dots i{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--muted);margin:0 3px;animation:pulse 1.2s infinite}
+#splash .dots i:nth-child(2){animation-delay:.2s}#splash .dots i:nth-child(3){animation-delay:.4s}
+/* opened from the home screen: start exactly where Android's own splash leaves off (small logo, same
+   background), then grow into the large logo, so the two read as one */
+@media (display-mode:standalone){
+  #splash{background:#f4f1ea}                                   /* = manifest background_color */
+  #splash img{filter:none!important;animation:grow .7s cubic-bezier(.2,.7,.2,1) .15s both}
+  #splash .nm{color:#1f2a1f;animation:fadeup .5s ease .55s both}
+  #splash .dots{animation:fadeup .4s ease .8s both}
+  #splash .dots i{background:#7c8679}
+}
+@keyframes grow{from{transform:scale(calc(128 / 260))}to{transform:none}}
+@keyframes fadeup{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){#splash img,#splash .nm,#splash .dots{animation:none!important}}
 .copybox{width:100%;min-height:140px;font-family:ui-monospace,monospace;font-size:.75rem}
 .syncpill{border:1px solid var(--line);background:var(--card);border-radius:16px;padding:5px 10px;min-height:40px;font-size:.76rem;line-height:1.25;display:inline-flex;align-items:center;gap:6px;color:var(--ink2);max-width:min(48vw,190px);text-align:left;white-space:normal;overflow:hidden}
 .syncpill.pending{color:var(--accent)}
@@ -201,6 +217,41 @@ header.top h1{display:flex;align-items:center;gap:10px}
 header.top h1 .logo{width:58px;height:58px;flex:none;margin:-6px -2px -6px -6px}
 .langgrid{display:grid;grid-template-columns:1fr;gap:8px}
 @media (min-width:480px){.langgrid{grid-template-columns:1fr 1fr}}
+.verrow{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-top:4px}
+.mbtns{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:4px 0 6px}
+.mbtn{position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:58px;border:1px dashed var(--green2);border-radius:12px;background:var(--greenbg);color:var(--green);font-size:1.25rem;cursor:pointer;padding:6px 2px;font-weight:600}
+.mbtn span{font-size:.68rem;line-height:1.15;text-align:center}
+.mbtn input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.at{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;background:var(--greenbg);color:var(--green);font-size:1.4rem}
+.at small{font-size:.7rem;font-weight:700}
+.afull{display:flex;align-items:center;gap:8px;margin:6px 0}.afull audio{flex:1;min-width:0}
+iframe.aframe{width:100%;height:96px;border:0;border-radius:10px;background:var(--card);margin:6px 0}
+#viewer .vaudio{display:flex;flex-direction:column;align-items:center;gap:18px;font-size:4rem;color:#fff;width:100%;padding:0 24px}
+#viewer .vaudio audio{width:100%;max-width:520px}
+#viewer iframe.aframe{height:120px;max-width:520px}
+.rec{display:flex;flex-direction:column;align-items:center;gap:12px;padding:8px 0}
+.rec-time{font-size:2.2rem;font-weight:700;font-variant-numeric:tabular-nums}
+.rec-lvl{width:70%;height:6px;border-radius:3px;background:var(--line);overflow:hidden}.rec-lvl i{display:block;height:100%;width:0;background:var(--green);transition:width .08s}
+.rec-go{width:76px;height:76px;border-radius:50%;border:4px solid #c0392b;background:var(--card);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.rec-go span{width:46px;height:46px;border-radius:50%;background:#c0392b;transition:all .2s}
+.rec-go.on span{width:28px;height:28px;border-radius:6px}
+.rec audio{width:100%}
+.vp{position:relative;background:#000;border-radius:10px;overflow:hidden;width:100%;line-height:0}
+.vp video{width:100%;max-height:60vh;display:block;background:#000;object-fit:contain}
+.vp-big{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:44px;height:44px;border-radius:50%;border:0;background:rgba(0,0,0,.45);color:#fff;font-size:1.3rem;cursor:pointer;padding-left:4px}
+.vp.playing .vp-big,.vp.started .vp-big{display:none}
+.vp-bar{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;gap:6px;padding:4px 8px;background:linear-gradient(transparent,rgba(0,0,0,.6));color:#fff;font-size:.72rem;line-height:1;transition:opacity .25s;opacity:1}
+.vp.playing:not(.ui) .vp-bar{opacity:0;pointer-events:none}
+.vp-bar button{border:0;background:transparent;color:#fff;font-size:.85rem;padding:4px 6px;min-width:28px;min-height:28px;cursor:pointer}
+.vp-t{font-variant-numeric:tabular-nums;white-space:nowrap;opacity:.9}
+.vp-seek{flex:1;min-width:40px;height:3px;accent-color:#fff;margin:0}
+.vp:fullscreen{border-radius:0;display:flex;align-items:center}.vp:fullscreen video{max-height:100vh;height:100vh}
+.vp.broken::after{content:"⚠";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:2rem}
+#viewer .vp{max-width:100%;max-height:calc(100% - 140px);background:transparent}
+#viewer .vp video{max-height:calc(100vh - 160px)}
+.linkbtn{border:0;background:none;padding:0 2px;color:var(--green);font-weight:700;text-decoration:underline;cursor:pointer;font-size:inherit}
+a.btn{text-decoration:none;display:inline-block;box-sizing:border-box}
+a.btn.block{display:block;width:100%}
 #pkbar{width:100%;display:flex;justify-content:center;border-bottom:1px solid var(--line);background:color-mix(in srgb,#c0392b 6%,var(--card))}
 #pkbar:empty{display:none}
 #pkbar .pkin{display:flex;align-items:center;justify-content:space-between;gap:8px;max-width:640px;width:100%;padding:3px 12px}
@@ -310,7 +361,8 @@ nav.tabs a{font-size:.72rem}
     <button class="langbtn" id="langbtn" type="button"></button>
   </header>
   <div id="banner"></div>
-  <main id="view"><div class="splash"><img src="icons/logo.svg" alt=""><div class="nm">ಜಲಗಾರ</div><div class="dots"><i></i><i></i><i></i></div></div></main>
+  <main id="view"></main>
+<div id="splash" aria-hidden="true"><img src="icons/logo.svg" alt=""><div class="nm">ಜಲಗಾರ</div><div class="dots"><i></i><i></i><i></i></div></div>
 </div>
 <nav class="tabs"><div id="pkbar"></div><div class="in" id="tabs"></div></nav>
 <div class="toast" id="toast"></div>
